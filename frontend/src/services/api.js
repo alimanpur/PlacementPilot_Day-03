@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 
 // Create axios instance
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
   timeout: 15000,
   withCredentials: true,
 })
@@ -19,7 +19,7 @@ async function refreshTokens() {
 
   refreshPromise = (async () => {
     const refreshClient = axios.create({
-      baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
+      baseURL: import.meta.env.VITE_API_URL || '/api/v1',
       withCredentials: true,
     })
 
