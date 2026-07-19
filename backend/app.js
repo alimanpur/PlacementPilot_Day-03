@@ -28,6 +28,11 @@ import { waitlistRouter } from './src/routes/waitlist.routes.js'
 
 const app = express()
 
+// Trust the first proxy (Render's load balancer / Cloudflare) so req.ip reflects
+// the real client IP. Without this, express-rate-limit keys all traffic by the
+// proxy IP and a single shared bucket is exhausted almost immediately.
+app.set('trust proxy', 1)
+
 app.use(helmet())
 app.use(compression())
 app.use(cors({
@@ -39,7 +44,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use(cookieParser())
 app.use(requestLogger)
 
-const limiter = rateLimit({
+// Generous global limiter for normal API usage (reads + writes). Per-client IP
+// thanks to `trust proxy` above, so concurrent users don't share one bucket.
+const globalLimiter = rateLimit({
   windowMs: config.RATE_LIMIT_WINDOW_MS,
   max: config.RATE_LIMIT_MAX,
   standardHeaders: true,
@@ -49,7 +56,21 @@ const limiter = rateLimit({
     message: 'Too many requests, please try again later.',
   },
 })
-app.use(limiter)
+
+// Stricter limiter for auth mutations only — protects against brute force without
+// throttling dashboard reads (which fire many GETs on every page load).
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many authentication attempts, please try again later.',
+  },
+})
+
+app.use(globalLimiter)
 
 app.use(morgan('combined', {
   stream: {
@@ -80,7 +101,7 @@ app.get('/readiness', (_req, res) => {
   })
 })
 
-app.use('/api/v1/auth', authRouter)
+app.use('/api/v1/auth', authLimiter, authRouter)
 app.use('/api/v1/users', userRouter)
 app.use('/api/v1/applications', applicationRouter)
 app.use('/api/v1/companies', companyRouter)
