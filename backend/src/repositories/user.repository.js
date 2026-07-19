@@ -6,7 +6,7 @@ export class UserRepository {
   }
 
   async findById(id) {
-    return User.findById(id).select('-password -refreshToken -passwordResetToken').where('deletedAt').exists(false)
+    return User.findById(id).select('-password -refreshToken -passwordResetToken').where('deletedAt').equals(null)
   }
 
   async findByEmail(email) {

@@ -1,26 +1,42 @@
 import { AnalyticsService } from '../services/analytics.service.js'
 import { CompanyRepository } from '../repositories/company.repository.js'
 import { InterviewRepository } from '../repositories/interview.repository.js'
-import { DSARepository } from '../repositories/dsa.repository.js'
 import { NotificationRepository } from '../repositories/notification.repository.js'
-import { PlannerRepository } from '../repositories/planner.repository.js'
 import { GoalRepository } from '../repositories/goal.repository.js'
 import { UserRepository } from '../repositories/user.repository.js'
 import { DSAService } from '../services/dsa.service.js'
 import { PlannerService } from '../services/planner.service.js'
 import { asyncWrapper } from '../middlewares/errorHandler.js'
-import mongoose from 'mongoose'
 
 const analyticsService = new AnalyticsService()
 const companyRepo = new CompanyRepository()
 const interviewRepo = new InterviewRepository()
-const dsaRepo = new DSARepository()
 const dsaService = new DSAService()
 const notificationRepo = new NotificationRepository()
-const plannerRepo = new PlannerRepository()
 const plannerService = new PlannerService()
 const goalRepo = new GoalRepository()
 const userRepo = new UserRepository()
+
+async function safePromise(promise, defaultValue) {
+  try {
+    return await promise
+  } catch (error) {
+    console.error('Dashboard safePromise error:', error.message)
+    return defaultValue
+  }
+}
+
+function safeArray(value) {
+  return Array.isArray(value) ? value : []
+}
+
+function safeObject(value) {
+  return value && typeof value === 'object' ? value : {}
+}
+
+function safeNumber(value, defaultValue = 0) {
+  return typeof value === 'number' && !isNaN(value) ? value : defaultValue
+}
 
 // GET /dashboard/overview - Unified endpoint for initial render
 const overviewCache = new Map()
@@ -47,48 +63,55 @@ export const getDashboardOverview = asyncWrapper(async (req, res) => {
     weeklyTrend,
     onboardingStatus
   ] = await Promise.all([
-    userRepo.findById(userId),
-    analyticsService.getReadinessScore(userId),
-    analyticsService.getApplicationStats(userId),
-    companyRepo.findAll(userId),
-    interviewRepo.getUpcomingInterviews(userId, 10),
-    notificationRepo.findUnread(userId),
-    dsaService.getStats(userId),
-    plannerService.getTodayFocus(userId),
-    goalRepo.findActive(userId),
-    analyticsService.getStreak(userId),
-    analyticsService.getHeatmapData(userId, 84),
-    analyticsService.getWeeklyTrend(userId, 4),
-    userRepo.getOnboardingStatus(userId),
+    safePromise(userRepo.findById(userId), null),
+    safePromise(analyticsService.getReadinessScore(userId), { overall: 0, coding: 0, interviewReadiness: 0, goalReadiness: 0, profileScore: 0 }),
+    safePromise(analyticsService.getApplicationStats(userId), { total: 0, offers: 0, rejected: 0, inProgress: 0, hot: 0 }),
+    safePromise(companyRepo.findAll(userId), { companies: [], total: 0 }),
+    safePromise(interviewRepo.getUpcomingInterviews(userId, 10), []),
+    safePromise(notificationRepo.findUnread(userId), []),
+    safePromise(dsaService.getStats(userId), { totalSolved: 0, weeklySolved: 0, weeklyDelta: 0, weakTopics: [], difficultyBreakdown: { easy: 0, medium: 0, hard: 0 }, streak: 0, revisionQueueCount: 0, heatmap: [], sessionsThisWeek: 0, averageSessionTime: 0 }),
+    safePromise(plannerService.getTodayFocus(userId), { tasks: [], completedToday: 0, totalTasks: 0, priorityQueue: [], upcomingDeadlines: [], interviewPrep: [], revisionQueue: [], overdue: [] }),
+    safePromise(goalRepo.findActive(userId), []),
+    safePromise(analyticsService.getStreak(userId), 0),
+    safePromise(analyticsService.getHeatmapData(userId, 84), []),
+    safePromise(analyticsService.getWeeklyTrend(userId, 4), []),
+    safePromise(userRepo.getOnboardingStatus(userId), { completed: false, steps: {} }),
   ])
 
-  const companiesList = companies?.companies || companies || []
-  const activeCompanies = companiesList.filter((c) => c.status !== 'closed')
-  const hotCompanies = activeCompanies.filter((c) => c.status === 'hot' || c.status === 'offer')
-  const upcomingInterviews = interviews?.filter((i) => i.status === 'upcoming') || []
-  
-  // Generate Today's Focus recommendations
+  const companiesList = safeArray(companies?.companies || companies)
+  const activeCompanies = companiesList.filter((c) => c && c.status !== 'closed')
+  const hotCompanies = activeCompanies.filter((c) => c && (c.status === 'hot' || c.status === 'offer'))
+  const upcomingInterviews = safeArray(interviews).filter((i) => i && i.status === 'upcoming')
+
+  const userName = user?.name || req.user?.name || 'there'
+  const userEmail = user?.email || req.user?.email || ''
+
   const todayFocus = generateTodayFocus({
     hasCompanies: activeCompanies.length > 0,
-    hasDsa: dsaStats.totalSolved > 0,
-    hasGoals: goals.length > 0,
-    hasPlanner: todayTasks.tasks?.length > 0,
-    readiness,
+    hasDsa: safeNumber(dsaStats?.totalSolved) > 0,
+    hasGoals: safeArray(goals).length > 0,
+    hasPlanner: safeArray(todayTasks?.tasks).length > 0,
+    readiness: safeObject(readiness),
     hotCompanies,
     upcomingInterviews,
-    weakTopics: dsaStats.weakTopics || [],
+    weakTopics: safeArray(dsaStats?.weakTopics),
   })
 
-  // Recent activity feed
-  const recentActivity = await generateRecentActivity(userId, companiesList, interviews, goals, todayTasks.tasks, notifications)
-  
-  // Calculate additional stats for coding consistency
+  const recentActivity = await generateRecentActivity(
+    userId,
+    companiesList,
+    safeArray(interviews),
+    safeArray(goals),
+    safeArray(todayTasks?.tasks),
+    safeArray(notifications)
+  )
+
   const codingStats = {
-    currentStreak: streak || 0,
-    longestStreak: await analyticsService.getLongestStreak(userId),
-    weeklySolved: dsaStats.weeklySolved || 0,
-    monthlySolved: await analyticsService.getMonthlySolved(userId),
-    totalSolved: dsaStats.totalSolved || 0,
+    currentStreak: safeNumber(streak),
+    longestStreak: await safePromise(analyticsService.getLongestStreak(userId), 0),
+    weeklySolved: safeNumber(dsaStats?.weeklySolved),
+    monthlySolved: await safePromise(analyticsService.getMonthlySolved(userId), 0),
+    totalSolved: safeNumber(dsaStats?.totalSolved),
   }
 
   const payload = {
@@ -96,38 +119,38 @@ export const getDashboardOverview = asyncWrapper(async (req, res) => {
     message: 'Dashboard overview retrieved',
     data: {
       user: {
-        name: user.name,
-        email: user.email,
-        onboarding: onboardingStatus,
+        name: userName,
+        email: userEmail,
+        onboarding: safeObject(onboardingStatus),
       },
-      readiness,
-      applicationStats,
+      readiness: safeObject(readiness),
+      applicationStats: safeObject(applicationStats),
       companies: activeCompanies,
       hotCompanies,
       interviews: upcomingInterviews,
-      notifications,
+      notifications: safeArray(notifications),
       todayFocus,
       dsaStats: {
-        totalSolved: dsaStats.totalSolved || 0,
-        weeklySolved: dsaStats.weeklySolved || 0,
-        weeklyDelta: dsaStats.weeklyDelta || 0,
-        weakTopics: dsaStats.weakTopics || [],
+        totalSolved: safeNumber(dsaStats?.totalSolved),
+        weeklySolved: safeNumber(dsaStats?.weeklySolved),
+        weeklyDelta: safeNumber(dsaStats?.weeklyDelta),
+        weakTopics: safeArray(dsaStats?.weakTopics),
       },
-      streak: streak || 0,
+      streak: safeNumber(streak),
       codingStats,
-      heatmap: heatmap || [],
-      weeklyTrend: weeklyTrend || [],
-      goals: goals.slice(0, 5),
+      heatmap: safeArray(heatmap),
+      weeklyTrend: safeArray(weeklyTrend),
+      goals: safeArray(goals).slice(0, 5),
       recentActivity,
       stats: {
-        applications: applicationStats.total || 0,
+        applications: safeNumber(applicationStats?.total),
         interviews: upcomingInterviews.length,
-        offers: applicationStats.offers || 0,
-        rejections: applicationStats.rejected || 0,
-        problemsSolved: dsaStats.totalSolved || 0,
-        goalsCompleted: goals.filter(g => g.progress === 100).length,
-        tasksCompleted: todayTasks.tasks.filter(t => t.done).length,
-      }
+        offers: safeNumber(applicationStats?.offers),
+        rejections: safeNumber(applicationStats?.rejected),
+        problemsSolved: safeNumber(dsaStats?.totalSolved),
+        goalsCompleted: safeArray(goals).filter((g) => safeNumber(g?.progress) === 100).length,
+        tasksCompleted: safeArray(todayTasks?.tasks).filter((t) => t?.done).length,
+      },
     },
   }
 
@@ -141,14 +164,22 @@ export const getDashboardActivity = asyncWrapper(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20
 
   const [companies, interviews, goals, plannerTasks, notifications] = await Promise.all([
-    companyRepo.findRecent(userId, limit),
-    interviewRepo.getPastInterviews(userId, limit),
-    goalRepo.findRecent(userId, limit),
-    plannerService.findRecent(userId, limit),
-    notificationRepo.findRecent(userId, limit),
+    safePromise(companyRepo.findRecent(userId, limit), []),
+    safePromise(interviewRepo.getPastInterviews(userId, limit), []),
+    safePromise(goalRepo.findRecent(userId, limit), []),
+    safePromise(plannerService.findRecent(userId, limit), []),
+    safePromise(notificationRepo.findRecent(userId, limit), []),
   ])
 
-  const activity = await generateRecentActivity(userId, companies, interviews, goals, plannerTasks, notifications, limit)
+  const activity = await generateRecentActivity(
+    userId,
+    safeArray(companies),
+    safeArray(interviews),
+    safeArray(goals),
+    safeArray(plannerTasks),
+    safeArray(notifications),
+    limit
+  )
 
   res.json({
     success: true,
@@ -160,16 +191,16 @@ export const getDashboardActivity = asyncWrapper(async (req, res) => {
 // GET /dashboard/readiness - Detailed readiness breakdown
 export const getDashboardReadiness = asyncWrapper(async (req, res) => {
   const userId = req.user._id
-  
+
   const [readiness, breakdown] = await Promise.all([
-    analyticsService.getReadinessScore(userId),
-    analyticsService.getReadinessBreakdown(userId),
+    safePromise(analyticsService.getReadinessScore(userId), { overall: 0, coding: 0, interviewReadiness: 0, goalReadiness: 0, profileScore: 0 }),
+    safePromise(analyticsService.getReadinessBreakdown(userId), {}),
   ])
 
   res.json({
     success: true,
     message: 'Readiness data retrieved',
-    data: { readiness, breakdown },
+    data: { readiness: safeObject(readiness), breakdown: safeObject(breakdown) },
   })
 })
 
@@ -185,27 +216,27 @@ export const getDashboardFocus = asyncWrapper(async (req, res) => {
     upcomingInterviews,
     weakTopics
   ] = await Promise.all([
-    companyRepo.findAll(userId),
-    dsaService.getStats(userId),
-    goalRepo.findActive(userId),
-    plannerService.getTodayFocus(userId),
-    interviewRepo.getUpcomingInterviews(userId, 10),
-    dsaService.getWeakTopics(userId, 3),
+    safePromise(companyRepo.findAll(userId), { companies: [], total: 0 }),
+    safePromise(dsaService.getStats(userId), { totalSolved: 0, weakTopics: [] }),
+    safePromise(goalRepo.findActive(userId), []),
+    safePromise(plannerService.getTodayFocus(userId), { tasks: [] }),
+    safePromise(interviewRepo.getUpcomingInterviews(userId, 10), []),
+    safePromise(dsaService.getWeakTopics(userId, 3), []),
   ])
 
-  const companiesList = companies?.companies || companies || []
-  const activeCompanies = companiesList.filter((c) => c.status !== 'closed')
-  const readiness = await analyticsService.getReadinessScore(userId)
+  const companiesList = safeArray(companies?.companies || companies)
+  const activeCompanies = companiesList.filter((c) => c && c.status !== 'closed')
+  const readiness = await safePromise(analyticsService.getReadinessScore(userId), { overall: 0, coding: 0, interviewReadiness: 0, goalReadiness: 0, profileScore: 0 })
 
   const todayFocus = generateTodayFocus({
     hasCompanies: activeCompanies.length > 0,
-    hasDsa: dsaStats.totalSolved > 0,
-    hasGoals: goals.length > 0,
-    hasPlanner: todayTasks.tasks?.length > 0,
-    readiness,
-    hotCompanies: activeCompanies.filter(c => c.status === 'hot' || c.status === 'offer'),
-    upcomingInterviews,
-    weakTopics: weakTopics || [],
+    hasDsa: safeNumber(dsaStats?.totalSolved) > 0,
+    hasGoals: safeArray(goals).length > 0,
+    hasPlanner: safeArray(todayTasks?.tasks).length > 0,
+    readiness: safeObject(readiness),
+    hotCompanies: activeCompanies.filter((c) => c && (c.status === 'hot' || c.status === 'offer')),
+    upcomingInterviews: safeArray(upcomingInterviews),
+    weakTopics: safeArray(weakTopics),
   })
 
   res.json({
@@ -221,18 +252,14 @@ export const getDashboardQuickActions = asyncWrapper(async (req, res) => {
 
   const [
     companies,
-    dsaStats,
-    goals,
     hasProfile
   ] = await Promise.all([
-    companyRepo.findAll(userId),
-    dsaService.getStats(userId),
-    goalRepo.findActive(userId),
-    userRepo.hasCompleteProfile(userId),
+    safePromise(companyRepo.findAll(userId), { companies: [], total: 0 }),
+    safePromise(userRepo.hasCompleteProfile(userId), false),
   ])
 
-  const companiesList = companies?.companies || companies || []
-  const activeCompanies = companiesList.filter((c) => c.status !== 'closed')
+  const companiesList = safeArray(companies?.companies || companies)
+  const activeCompanies = companiesList.filter((c) => c && c.status !== 'closed')
   const actions = [
     { id: 'add-application', label: 'Add Application', icon: '📋', available: true, route: '/app/applications' },
     { id: 'log-dsa', label: 'Log DSA Problem', icon: '🧮', available: true, route: '/app/dsa' },
@@ -240,7 +267,7 @@ export const getDashboardQuickActions = asyncWrapper(async (req, res) => {
     { id: 'create-goal', label: 'Create Goal', icon: '🎯', available: true, route: '/app/goals' },
     { id: 'schedule-interview', label: 'Schedule Interview', icon: '🎯', available: activeCompanies.length > 0, route: '/app/interviews' },
     { id: 'update-profile', label: 'Update Profile', icon: '👤', available: !hasProfile, route: '/app/profile' },
-  ].filter(a => a.available)
+  ].filter((a) => a.available)
 
   res.json({
     success: true,
@@ -249,13 +276,12 @@ export const getDashboardQuickActions = asyncWrapper(async (req, res) => {
   })
 })
 
-// Helper function to generate Today's Focus recommendations
 function generateTodayFocus(context) {
   const focus = []
   const { hasCompanies, hasDsa, hasGoals, hasPlanner, readiness, hotCompanies, upcomingInterviews, weakTopics } = context
+  const safeReadiness = safeObject(readiness)
 
-  // Always prioritize based on readiness and gaps
-  if (readiness.overall < 30) {
+  if (safeReadiness.overall < 30) {
     focus.push({
       id: 'boost-readiness',
       title: 'Complete your profile',
@@ -305,7 +331,6 @@ function generateTodayFocus(context) {
     })
   }
 
-  // Contextual recommendations
   if (hotCompanies.length > 0) {
     focus.push({
       id: 'hot-leads',
@@ -320,8 +345,8 @@ function generateTodayFocus(context) {
     const nextInterview = upcomingInterviews[0]
     focus.push({
       id: 'upcoming-interview',
-      title: `Prepare for ${nextInterview.company} interview`,
-      description: `${nextInterview.round} scheduled - review key concepts`,
+      title: `Prepare for ${nextInterview?.company || 'interview'} interview`,
+      description: `${nextInterview?.round || 'Round'} scheduled - review key concepts`,
       priority: 'high',
       action: 'prepare-interview',
     })
@@ -331,14 +356,14 @@ function generateTodayFocus(context) {
     const topWeak = weakTopics[0]
     focus.push({
       id: 'weak-topic',
-      title: `Practice ${topWeak.topic} problems`,
-      description: `Your mastery is at ${topWeak.mastery}% - improve with practice`,
+      title: `Practice ${topWeak?.topic || 'weak topics'} problems`,
+      description: `Your mastery is at ${safeNumber(topWeak?.mastery)}% - improve with practice`,
       priority: 'medium',
       action: 'practice-topic',
     })
   }
 
-  if (readiness.coding < 50 && hasDsa) {
+  if (safeReadiness.coding < 50 && hasDsa) {
     focus.push({
       id: 'coding-practice',
       title: 'Solve 2-3 coding problems today',
@@ -348,7 +373,7 @@ function generateTodayFocus(context) {
     })
   }
 
-  if (readiness.goalReadiness < 50 && hasGoals) {
+  if (safeReadiness.goalReadiness < 50 && hasGoals) {
     focus.push({
       id: 'goal-progress',
       title: 'Update your goal progress',
@@ -358,95 +383,96 @@ function generateTodayFocus(context) {
     })
   }
 
-  // Limit to top 4 recommendations
   return focus.slice(0, 4)
 }
 
-// Helper function to generate recent activity feed
 async function generateRecentActivity(userId, companies, interviews, goals, plannerTasks, notifications, limit = 10) {
   const activities = []
 
-  // Add company activities
-  companies.slice(0, 5).forEach(company => {
+  safeArray(companies).slice(0, 5).forEach((company) => {
+    if (!company) return
     activities.push({
-      id: `company-${company._id}`,
+      id: `company-${company._id || 'unknown'}`,
       type: 'application',
-      title: `Added ${company.name} application`,
-      description: `${company.role} · ${company.stage}`,
-      timestamp: company.createdAt,
+      title: `Added ${company.name || 'company'} application`,
+      description: `${company.role || ''} ${company.stage || ''}`.trim() || 'Application added',
+      timestamp: company.createdAt || new Date(),
       icon: '📋',
     })
   })
 
-  // Add interview activities
-  interviews.slice(0, 5).forEach(interview => {
+  safeArray(interviews).slice(0, 5).forEach((interview) => {
+    if (!interview) return
     activities.push({
-      id: `interview-${interview._id}`,
+      id: `interview-${interview._id || 'unknown'}`,
       type: 'interview',
-      title: `Interview scheduled with ${interview.company}`,
-      description: `${interview.round} · ${interview.when}`,
-      timestamp: interview.createdAt,
+      title: `Interview scheduled with ${interview.company || 'company'}`,
+      description: `${interview.round || ''} ${interview.when || ''}`.trim() || 'Interview scheduled',
+      timestamp: interview.createdAt || new Date(),
       icon: '🎯',
     })
   })
 
-  // Add goal activities
-  goals.slice(0, 5).forEach(goal => {
+  safeArray(goals).slice(0, 5).forEach((goal) => {
+    if (!goal) return
     activities.push({
-      id: `goal-${goal._id}`,
+      id: `goal-${goal._id || 'unknown'}`,
       type: 'goal',
-      title: goal.progress === 100 ? 'Goal completed' : 'Goal created',
-      description: goal.title,
-      timestamp: goal.createdAt,
+      title: safeNumber(goal.progress) === 100 ? 'Goal completed' : 'Goal created',
+      description: goal.title || 'Goal',
+      timestamp: goal.createdAt || new Date(),
       icon: '🎯',
     })
   })
 
-  // Add planner activities
-  plannerTasks.slice(0, 5).forEach(task => {
+  safeArray(plannerTasks).slice(0, 5).forEach((task) => {
+    if (!task) return
     activities.push({
-      id: `task-${task._id}`,
+      id: `task-${task._id || 'unknown'}`,
       type: 'planner',
       title: task.done ? 'Completed planner task' : 'Added planner task',
-      description: task.title,
-      timestamp: task.createdAt,
+      description: task.title || 'Task',
+      timestamp: task.createdAt || new Date(),
       icon: '📅',
     })
   })
 
-  // Add notification activities
-  notifications.slice(0, 5).forEach(notification => {
+  safeArray(notifications).slice(0, 5).forEach((notification) => {
+    if (!notification) return
     activities.push({
-      id: `notification-${notification._id}`,
+      id: `notification-${notification._id || 'unknown'}`,
       type: 'notification',
-      title: notification.title,
+      title: notification.title || 'Notification',
       description: notification.message || '',
-      timestamp: notification.createdAt,
+      timestamp: notification.createdAt || new Date(),
       icon: '🔔',
     })
   })
 
-  // Sort by timestamp descending
   activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 
-  // Format timestamps and limit
-  return activities.slice(0, limit).map(activity => ({
+  return activities.slice(0, limit).map((activity) => ({
     ...activity,
     timestamp: formatActivityTime(activity.timestamp),
   }))
 }
 
 function formatActivityTime(timestamp) {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diff = now - date
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
+  try {
+    const date = new Date(timestamp)
+    if (isNaN(date.getTime())) return 'Unknown time'
+    const now = new Date()
+    const diff = now - date
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
 
-  if (minutes < 1) return 'Just now'
-  if (minutes < 60) return `${minutes}m ago`
-  if (hours < 24) return `${hours}h ago`
-  if (days < 7) return `${days}d ago`
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    if (minutes < 1) return 'Just now'
+    if (minutes < 60) return `${minutes}m ago`
+    if (hours < 24) return `${hours}h ago`
+    if (days < 7) return `${days}d ago`
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  } catch {
+    return 'Unknown time'
+  }
 }

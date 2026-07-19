@@ -16,7 +16,7 @@ export const authenticate = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, config.JWT_SECRET)
-    const user = await User.findById(decoded.userId).select('-password -refreshToken').where('deletedAt').exists(false)
+    const user = await User.findById(decoded.userId).select('-password -refreshToken').where('deletedAt').equals(null)
 
     if (!user) {
       return res.status(401).json({
