@@ -1,0 +1,184 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design tokens ─────────────────────────────────────── */
+:root {
+  --radius: 0.625rem;
+
+  /* Aviator technical — dark, precision */
+  --base: #09090b;
+  --surface: #131316;
+  --surface-2: #1c1c20;
+  --hairline: rgba(255, 255, 255, 0.06);
+  --ink: #fafafa;
+  --ink-2: #d4d4d8;
+  --ink-3: #a1a1aa;
+  --ink-4: #52525b;
+  --brand: #10b981;
+  --brand-soft: rgba(16, 185, 129, 0.12);
+  --accent: #f59e0b;
+  --accent-soft: rgba(245, 158, 11, 0.12);
+  --danger: #ef4444;
+}
+
+/* ─── Base layer ─────────────────────────────────────────── */
+@layer base {
+  html {
+    color-scheme: dark;
+    /* dvh fallback for browsers without dvh support */
+    --vh: 1vh;
+  }
+
+  *,
+  *::before,
+  *::after {
+    border-color: var(--hairline);
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    background-color: var(--base);
+    color: var(--ink);
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  ::selection {
+    background: rgba(16, 185, 129, 0.28);
+    color: #fff;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: 'Instrument Sans', 'Inter', sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Custom scrollbar — subtle */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+/* ─── Utility classes ────────────────────────────────────── */
+@layer utilities {
+  .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-3);
+  }
+
+  .hairline-t {
+    border-top: 1px solid var(--hairline);
+  }
+
+  .hairline-b {
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .hairline {
+    border: 1px solid var(--hairline);
+  }
+
+  .ring-hairline {
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+
+  .fade-up {
+    animation: pp-fade-up 0.5s cubic-bezier(0.19, 1, 0.22, 1) both;
+  }
+
+  .font-display {
+    font-family: 'Instrument Sans', 'Inter', sans-serif;
+  }
+
+  /* dvh utility with fallback */
+  .min-h-dvh {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .h-dvh {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* text-balance polyfill class */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+/* ─── Animations ─────────────────────────────────────────── */
+@keyframes pp-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ─── CMDK overrides ─────────────────────────────────────── */
+[cmdk-group-heading] {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-3);
+  padding: 8px 16px 4px;
+}
+
+[cmdk-item] {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.1s;
+}
+
+[cmdk-item][aria-selected='true'],
+[cmdk-item][data-selected='true'] {
+  background-color: var(--surface-2);
+  color: var(--ink);
+}
