@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 
 // Marketing pages
+const Landing = lazy(() => import('@/pages/marketing/Landing'))
 const Features = lazy(() => import('@/pages/marketing/Features'))
 const Story = lazy(() => import('@/pages/marketing/Story'))
 const Pricing = lazy(() => import('@/pages/marketing/Pricing'))
@@ -67,8 +68,8 @@ export default function AppRoutes() {
     <Suspense fallback={<PageLoader />}>
       <AnimatePresence mode="wait" initial={false}>
         <Routes location={location} key={location.pathname}>
-          {/* Root redirect */}
-          <Route path="/" element={<Navigate to="/features" replace />} />
+          {/* Root — Landing */}
+          <Route path="/" element={<Landing />} />
 
           {/* Marketing */}
           <Route path="/features" element={<Features />} />
