@@ -13,6 +13,7 @@ import {
   Check,
   BookOpen,
   Route,
+  Command,
 } from 'lucide-react'
 import { MarketingShell } from '@/layouts/MarketingShell'
 import { Eyebrow, Card } from '@/components/common/atoms'
@@ -116,6 +117,8 @@ const faqs = [
   ['How is the readiness score calculated?', 'A weighted composite of coding velocity, topic mastery, mock scores, application activity, and consistency. The full formula is visible in Settings.'],
 ]
 
+const marquee = ['Applications', 'Interviews', 'DSA', 'Goals', 'Planner', 'Analytics', 'Profile', 'Achievements']
+
 const previewHeatmap = Array.from({ length: 84 }, (_, i) => ({
   date: new Date(Date.now() - (83 - i) * 86400000).toISOString(),
   count: i < 60 ? 0 : Math.max(0, Math.round(Math.sin(i / 3) * 2 + 2)),
@@ -136,10 +139,10 @@ function CTA({ to, children, variant = 'primary', className = '' }) {
   )
 }
 
-function SectionHeading({ eyebrow, title, description }) {
+function SectionHeading({ eyebrow, title, description, center = false }) {
   return (
-    <div className="max-w-2xl">
-      <Eyebrow>{eyebrow}</Eyebrow>
+    <div className={center ? 'max-w-2xl mx-auto text-center' : 'max-w-2xl'}>
+      {center ? <div className="flex justify-center"><Eyebrow>{eyebrow}</Eyebrow></div> : <Eyebrow>{eyebrow}</Eyebrow>}
       <h2 className="mt-3 font-display text-3xl md:text-4xl font-semibold text-ink tracking-tight">
         {title}
       </h2>
@@ -155,31 +158,32 @@ export default function Landing() {
         {/* ── Hero ─────────────────────────────────────────── */}
         <section className="relative overflow-hidden">
           <div
-            className="pointer-events-none absolute inset-0 opacity-60"
+            className="pointer-events-none absolute inset-0"
             aria-hidden="true"
             style={{
               background:
-                'radial-gradient(60% 50% at 50% 0%, rgba(16,185,129,0.16), transparent 70%)',
+                'radial-gradient(70% 55% at 50% -5%, rgba(16,185,129,0.18), transparent 70%), radial-gradient(40% 40% at 85% 10%, rgba(245,158,11,0.08), transparent 70%)',
             }}
           />
-          <div className="relative max-w-7xl mx-auto px-4 md:px-6 pt-20 md:pt-28 pb-16 md:pb-24 text-center">
-            <motion.div
+          <div className="relative max-w-7xl mx-auto px-4 md:px-6 pt-24 md:pt-32 pb-20 text-center">
+            <motion.a
+              href="/features"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="inline-flex items-center gap-2 ring-hairline bg-surface rounded-full px-3 py-1 mb-6"
+              className="inline-flex items-center gap-2 ring-hairline bg-surface rounded-full px-3 py-1 mb-8 hover:bg-surface-2 transition"
             >
-              <span className="size-1.5 rounded-full bg-brand" />
+              <Sparkles className="size-3.5 text-brand" />
               <span className="text-[10px] font-mono uppercase tracking-widest text-ink-3">
                 The OS for placement prep
               </span>
-            </motion.div>
+            </motion.a>
 
             <motion.h1
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.05 }}
-              className="mx-auto font-display text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-ink text-balance max-w-[18ch]"
+              className="mx-auto font-display text-5xl sm:text-6xl md:text-7xl font-semibold tracking-tight text-ink text-balance max-w-[16ch]"
             >
               Fly your placement season like a mission.
             </motion.h1>
@@ -188,7 +192,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.12 }}
-              className="mx-auto mt-6 max-w-[60ch] text-lg text-ink-3 text-pretty"
+              className="mx-auto mt-6 max-w-[58ch] text-lg text-ink-3 text-pretty"
             >
               PlacementPilot is the operating system for placement preparation — one workspace to
               track companies, applications, interviews, and DSA, with a readiness score that tells
@@ -199,7 +203,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.18 }}
-              className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3"
+              className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3"
             >
               <CTA to="/sign-up">
                 Initialize your deck <ArrowRight className="size-4" />
@@ -209,39 +213,42 @@ export default function Landing() {
               </CTA>
             </motion.div>
 
-            <p className="mt-5 text-xs font-mono uppercase tracking-widest text-ink-4">
-              Free to start · No credit card · Keyboard-first
-            </p>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.25 }}
+              className="mt-6 inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-ink-4"
+            >
+              <Command className="size-3.5" /> Free to start · No credit card · Keyboard-first
+            </motion.div>
           </div>
         </section>
 
-        {/* ── Trusted strip ────────────────────────────────── */}
-        <section className="border-y border-hairline bg-surface/40">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-mono uppercase tracking-widest text-ink-4">
-            <span>Applications</span>
-            <span className="text-ink-4/40">·</span>
-            <span>Interviews</span>
-            <span className="text-ink-4/40">·</span>
-            <span>DSA</span>
-            <span className="text-ink-4/40">·</span>
-            <span>Goals</span>
-            <span className="text-ink-4/40">·</span>
-            <span>Planner</span>
-            <span className="text-ink-4/40">·</span>
-            <span>Analytics</span>
+        {/* ── Logo / module marquee ────────────────────────── */}
+        <section className="border-y border-hairline bg-surface/40 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-mono uppercase tracking-widest text-ink-4">
+              {marquee.map((m) => (
+                <span key={m} className="flex items-center gap-2">
+                  <span className="size-1.5 rounded-full bg-brand/50" />
+                  {m}
+                </span>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* ── Platform modules ─────────────────────────────── */}
-        <section className="border-b border-hairline py-20 md:py-24">
+        {/* ── Platform modules (bento) ─────────────────────── */}
+        <section className="border-b border-hairline py-20 md:py-28">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <SectionHeading
+              center
               eyebrow="Platform"
               title="Six modules. One flight deck."
               description="Each module feeds the same dashboard, so your effort in one area moves your readiness everywhere."
             />
             <motion.div
-              className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
+              className="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
               variants={staggerContainer}
               initial="initial"
               whileInView="animate"
@@ -263,7 +270,7 @@ export default function Landing() {
         </section>
 
         {/* ── Dashboard preview (screenshot placeholder) ──── */}
-        <section className="border-b border-hairline py-20 md:py-24">
+        <section className="border-b border-hairline py-20 md:py-28">
           <div className="max-w-7xl mx-auto px-4 md:px-6 grid lg:grid-cols-[1fr_1.2fr] gap-12 items-center">
             <div>
               <SectionHeading
@@ -272,19 +279,16 @@ export default function Landing() {
                 description="What needs my attention today? Upcoming interviews, weak topics, and overdue tasks surface automatically — no manual triage."
               />
               <ul className="mt-6 space-y-3">
-                {[
-                  'Live readiness score',
-                  'Today’s focus, prioritized',
-                  'Weak-topic radar',
-                  'Streak and consistency',
-                ].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-sm text-ink-2">
-                    <span className="size-5 rounded-full bg-brand-soft grid place-items-center shrink-0">
-                      <Check className="size-3 text-brand" />
-                    </span>
-                    {item}
-                  </li>
-                ))}
+                {['Live readiness score', 'Today’s focus, prioritized', 'Weak-topic radar', 'Streak and consistency'].map(
+                  (item) => (
+                    <li key={item} className="flex items-center gap-3 text-sm text-ink-2">
+                      <span className="size-5 rounded-full bg-brand-soft grid place-items-center shrink-0">
+                        <Check className="size-3 text-brand" />
+                      </span>
+                      {item}
+                    </li>
+                  ),
+                )}
               </ul>
               <div className="mt-8">
                 <CTA to="/sign-up" variant="secondary">
@@ -302,9 +306,7 @@ export default function Landing() {
               <Card className="relative p-5 md:p-6 shadow-2xl shadow-black/30">
                 <div className="flex items-center justify-between mb-5">
                   <Eyebrow>Command deck · preview</Eyebrow>
-                  <span className="text-[10px] font-mono text-brand uppercase tracking-widest">
-                    ● Live
-                  </span>
+                  <span className="text-[10px] font-mono text-brand uppercase tracking-widest">● Live</span>
                 </div>
                 <div className="grid grid-cols-[auto_1fr] gap-5 items-center">
                   <ReadinessDial value={72} size={140} label="Readiness" />
@@ -334,15 +336,16 @@ export default function Landing() {
         </section>
 
         {/* ── Feature highlights ───────────────────────────── */}
-        <section className="border-b border-hairline py-20 md:py-24">
+        <section className="border-b border-hairline py-20 md:py-28">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <SectionHeading
+              center
               eyebrow="Highlights"
               title="Signal over noise."
               description="PlacementPilot is opinionated about what matters during a placement season."
             />
             <motion.div
-              className="mt-12 grid sm:grid-cols-2 gap-4"
+              className="mt-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-4"
               variants={staggerContainer}
               initial="initial"
               whileInView="animate"
@@ -364,11 +367,11 @@ export default function Landing() {
         </section>
 
         {/* ── How it works ─────────────────────────────────── */}
-        <section className="border-b border-hairline py-20 md:py-24">
+        <section className="border-b border-hairline py-20 md:py-28">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
-            <SectionHeading eyebrow="How it works" title="From empty account to offer-ready." />
+            <SectionHeading center eyebrow="How it works" title="From empty account to offer-ready." />
             <motion.div
-              className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4"
+              className="mt-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-4"
               variants={staggerContainer}
               initial="initial"
               whileInView="animate"
@@ -377,9 +380,7 @@ export default function Landing() {
               {steps.map((s) => (
                 <motion.div key={s.n} variants={staggerItem}>
                   <Card className="h-full">
-                    <div className="font-display text-3xl text-brand/70 font-semibold mb-4 tabular-nums">
-                      {s.n}
-                    </div>
+                    <div className="font-display text-3xl text-brand/70 font-semibold mb-4 tabular-nums">{s.n}</div>
                     <h3 className="text-ink font-medium mb-1.5">{s.title}</h3>
                     <p className="text-sm text-ink-3">{s.desc}</p>
                   </Card>
@@ -390,7 +391,7 @@ export default function Landing() {
         </section>
 
         {/* ── Why PlacementPilot ───────────────────────────── */}
-        <section className="border-b border-hairline py-20 md:py-24">
+        <section className="border-b border-hairline py-20 md:py-28">
           <div className="max-w-7xl mx-auto px-4 md:px-6 grid lg:grid-cols-[1fr_1fr] gap-12 items-start">
             <SectionHeading
               eyebrow="Why PlacementPilot"
@@ -419,23 +420,21 @@ export default function Landing() {
         </section>
 
         {/* ── FAQ ──────────────────────────────────────────── */}
-        <section className="border-b border-hairline py-20 md:py-24">
+        <section className="border-b border-hairline py-20 md:py-28">
           <div className="max-w-3xl mx-auto px-4 md:px-6">
-            <SectionHeading eyebrow="FAQ" title="Everything you'd think to ask." />
-            <div className="mt-10 divide-y divide-hairline" role="list" aria-label="Frequently asked questions">
+            <SectionHeading center eyebrow="FAQ" title="Everything you'd think to ask." />
+            <div className="mt-12 divide-y divide-hairline" role="list" aria-label="Frequently asked questions">
               {faqs.map(([q, a]) => (
                 <details key={q} className="group py-5" role="listitem">
                   <summary className="flex items-center justify-between gap-4 cursor-pointer list-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded">
                     <h3 className="font-display text-lg text-ink">{q}</h3>
-                    <span className="text-ink-3 text-xl leading-none shrink-0 transition-transform group-open:rotate-45">
-                      +
-                    </span>
+                    <span className="text-ink-3 text-xl leading-none shrink-0 transition-transform group-open:rotate-45">+</span>
                   </summary>
                   <p className="pt-3 text-sm text-ink-3 leading-relaxed">{a}</p>
                 </details>
               ))}
             </div>
-            <div className="mt-8 flex items-center gap-2 text-sm text-ink-3">
+            <div className="mt-8 flex items-center justify-center gap-2 text-sm text-ink-3">
               <BookOpen className="size-4 text-ink-4" />
               More answers in the <a href="/faq" className="text-brand hover:underline">full FAQ</a>.
             </div>
@@ -443,7 +442,7 @@ export default function Landing() {
         </section>
 
         {/* ── Final CTA ────────────────────────────────────── */}
-        <section className="py-20 md:py-24">
+        <section className="py-24 md:py-32">
           <div className="max-w-4xl mx-auto px-4 md:px-6 text-center">
             <div className="inline-flex items-center gap-2 mb-4">
               <Route className="size-4 text-brand" />
