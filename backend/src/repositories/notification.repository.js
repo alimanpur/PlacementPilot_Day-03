@@ -1,4 +1,5 @@
 import { Notification } from '../models/notification.model.js'
+import { safeArray } from '../lib/safeData.js'
 
 export class NotificationRepository {
   async create(userId, data) {
@@ -10,11 +11,11 @@ export class NotificationRepository {
   }
 
   async findAll(userId) {
-    return Notification.find({ userId, deletedAt: null }).sort({ createdAt: -1 })
+    return safeArray(await Notification.find({ userId, deletedAt: null }).sort({ createdAt: -1 }))
   }
 
   async findUnread(userId) {
-    return Notification.find({ userId, read: false, deletedAt: null }).sort({ createdAt: -1 })
+    return safeArray(await Notification.find({ userId, read: false, deletedAt: null }).sort({ createdAt: -1 }))
   }
 
   async markRead(userId, id) {
@@ -37,8 +38,8 @@ export class NotificationRepository {
   }
 
   async findRecent(userId, limit = 10) {
-    return Notification.find({ userId, deletedAt: null })
+    return safeArray(await Notification.find({ userId, deletedAt: null })
       .sort({ createdAt: -1 })
-      .limit(limit)
+      .limit(limit))
   }
 }

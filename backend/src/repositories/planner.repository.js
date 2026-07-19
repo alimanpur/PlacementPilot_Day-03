@@ -4,6 +4,7 @@ import { Goal } from '../models/goal.model.js'
 import { Interview } from '../models/interview.model.js'
 import { Company } from '../models/company.model.js'
 import { DSARevision, DSAProblem } from '../models/dsa.model.js'
+import { safeArray, safeObject, safeNumber } from '../lib/safeData.js'
 
 export class PlannerRepository {
   // ── Tasks ──────────────────────────────────────────────────────────────
@@ -68,7 +69,7 @@ export class PlannerRepository {
       PlannerTask.countDocuments(query),
     ])
 
-    return { tasks, total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) }
+    return { tasks: safeArray(tasks), total: safeNumber(total), page: Number(page), limit: Number(limit), totalPages: Math.ceil(safeNumber(total) / limit) }
   }
 
   async updateTask(userId, id, data) {
@@ -115,7 +116,7 @@ export class PlannerRepository {
     const end = new Date(date)
     end.setHours(23, 59, 59, 999)
 
-    return PlannerTask.find({
+    return safeArray(await PlannerTask.find({
       userId,
       deletedAt: null,
       archived: false,
@@ -124,7 +125,7 @@ export class PlannerRepository {
         { dueDate: { $gte: start, $lte: end } },
         { deadline: { $gte: start, $lte: end } },
       ],
-    }).sort({ priority: -1, createdAt: 1 })
+    }).sort({ priority: -1, createdAt: 1 }))
   }
 
   async findByWeek(userId, startDate, endDate) {
@@ -133,7 +134,7 @@ export class PlannerRepository {
     const end = new Date(endDate)
     end.setHours(23, 59, 59, 999)
 
-    return PlannerTask.find({
+    return safeArray(await PlannerTask.find({
       userId,
       deletedAt: null,
       archived: false,
@@ -142,12 +143,12 @@ export class PlannerRepository {
         { dueDate: { $gte: start, $lte: end } },
         { deadline: { $gte: start, $lte: end } },
       ],
-    }).sort({ startDate: 1, priority: -1 })
+    }).sort({ startDate: 1, priority: -1 }))
   }
 
   async findUpcoming(userId, limit = 10) {
     const now = new Date()
-    return PlannerTask.find({
+    return safeArray(await PlannerTask.find({
       userId,
       deletedAt: null,
       archived: false,
@@ -155,18 +156,18 @@ export class PlannerRepository {
       dueDate: { $gte: now },
     })
       .sort({ dueDate: 1, priority: -1 })
-      .limit(limit)
+      .limit(limit))
   }
 
   async findOverdue(userId) {
     const now = new Date()
-    return PlannerTask.find({
+    return safeArray(await PlannerTask.find({
       userId,
       deletedAt: null,
       archived: false,
       status: { $nin: ['completed', 'cancelled'] },
       dueDate: { $lt: now },
-    }).sort({ dueDate: 1, priority: -1 })
+    }).sort({ dueDate: 1, priority: -1 }))
   }
 
   async findTodayCompleted(userId) {
@@ -175,12 +176,12 @@ export class PlannerRepository {
     const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
 
-    return PlannerTask.find({
+    return safeArray(await PlannerTask.find({
       userId,
       deletedAt: null,
       status: 'completed',
       completedDate: { $gte: today, $lt: tomorrow },
-    })
+    }))
   }
 
   // ── Smart Tasks ────────────────────────────────────────────────────────
@@ -272,11 +273,11 @@ export class PlannerRepository {
   }
 
   async findSmartTasks(userId) {
-    return PlannerTask.find({
+    return safeArray(await PlannerTask.find({
       userId,
       deletedAt: null,
       linkedModule: { $ne: 'none' },
-    }).sort({ createdAt: -1 })
+    }).sort({ createdAt: -1 }))
   }
 
   // ── Calendar ───────────────────────────────────────────────────────────
@@ -298,7 +299,7 @@ export class PlannerRepository {
       ],
     }).sort({ startDate: 1, priority: -1 })
 
-    return tasks.map((task) => ({
+    return safeArray(tasks).map((task) => ({
       id: task._id,
       title: task.title,
       start: task.startDate || task.dueDate || task.deadline,
@@ -411,17 +412,17 @@ export class PlannerRepository {
 
       data.push({
         week: weeks - i,
-        completed,
-        created,
+        completed: safeNumber(completed),
+        created: safeNumber(created),
         rate: created > 0 ? Math.round((completed / created) * 100) : 0,
       })
     }
 
-    return data
+    return safeArray(data)
   }
 
   async getCategoryDistribution(userId) {
-    return PlannerTask.aggregate([
+    return safeArray(await PlannerTask.aggregate([
       { $match: { userId: new mongoose.Types.ObjectId(userId), deletedAt: null } },
       {
         $group: {
@@ -431,7 +432,7 @@ export class PlannerRepository {
         },
       },
       { $sort: { total: -1 } },
-    ])
+    ]))
   }
 
   async getWeeklyReport(userId) {
@@ -462,16 +463,17 @@ export class PlannerRepository {
       ]),
     ])
 
-    const total = tasks.length
-    const totalTime = tasks.reduce((sum, t) => sum + (t.actualTime || t.estimatedTime || 0), 0)
+    const tasksArr = safeArray(tasks)
+    const total = tasksArr.length
+    const totalTime = tasksArr.reduce((sum, t) => sum + (t.actualTime || t.estimatedTime || 0), 0)
 
     return {
       total,
-      completed,
+      completed: safeNumber(completed),
       completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
       totalTime,
-      byCategory,
-      byPriority,
+      byCategory: safeArray(byCategory),
+      byPriority: safeArray(byPriority),
     }
   }
 
@@ -482,7 +484,7 @@ export class PlannerRepository {
   }
 
   async findHabits(userId) {
-    return PlannerHabit.find({ userId, deletedAt: null, active: true }).sort({ createdAt: -1 })
+    return safeArray(await PlannerHabit.find({ userId, deletedAt: null, active: true }).sort({ createdAt: -1 }))
   }
 
   async findHabitById(userId, id) {
@@ -583,7 +585,7 @@ export class PlannerRepository {
   }
 
   async findGoals(userId, filters = {}) {
-    return Goal.find({ userId, deletedAt: null, ...filters }).sort({ deadline: 1 })
+    return safeArray(await Goal.find({ userId, deletedAt: null, ...filters }).sort({ deadline: 1 }))
   }
 
   async findGoalById(userId, id) {
@@ -648,22 +650,22 @@ export class PlannerRepository {
     ])
 
     return {
-      totalTasks,
-      completedToday,
-      overdueCount: overdueCount.length,
-      upcomingCount,
-      activeHabits,
-      activeGoals,
-      weeklyCompletion,
-      categoryDistribution,
+      totalTasks: safeNumber(totalTasks),
+      completedToday: safeNumber(completedToday),
+      overdueCount: safeArray(overdueCount).length,
+      upcomingCount: safeArray(upcomingCount).length,
+      activeHabits: safeNumber(activeHabits),
+      activeGoals: safeNumber(activeGoals),
+      weeklyCompletion: safeNumber(weeklyCompletion),
+      categoryDistribution: safeArray(categoryDistribution),
     }
   }
 
   async findRecent(userId, limit = 10) {
-    return await PlannerTask.find({ userId, deletedAt: null })
+    return safeArray(await PlannerTask.find({ userId, deletedAt: null })
       .sort({ createdAt: -1 })
       .limit(limit)
-      .lean()
+      .lean())
   }
 
   async getWeeklyTarget(userId, startDate, endDate) {
@@ -672,11 +674,15 @@ export class PlannerRepository {
     const end = new Date(endDate)
     end.setHours(23, 59, 59, 999)
 
-    return PlannerTask.aggregate([
+    const results = await PlannerTask.aggregate([
       {
         $match: {
           userId: new mongoose.Types.ObjectId(userId),
-          date: { $gte: start, $lte: end },
+          $or: [
+            { startDate: { $gte: start, $lte: end } },
+            { dueDate: { $gte: start, $lte: end } },
+            { deadline: { $gte: start, $lte: end } },
+          ],
           deletedAt: null,
         },
       },
@@ -684,9 +690,16 @@ export class PlannerRepository {
         $group: {
           _id: null,
           total: { $sum: 1 },
-          completed: { $sum: { $cond: ['$done', 1, 0] } },
+          completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
         },
       },
     ])
+
+    const result = results[0] || {}
+    return {
+      total: safeNumber(result.total),
+      completed: safeNumber(result.completed),
+      completionRate: result.total > 0 ? Math.round((result.completed / result.total) * 100) : 0,
+    }
   }
 }

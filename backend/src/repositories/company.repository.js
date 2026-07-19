@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 import { Company } from '../models/company.model.js'
 import { Application } from '../models/application.model.js'
 import { Interview } from '../models/interview.model.js'
+import { safeArray, safeObject, safeNumber } from '../lib/safeData.js'
 
 export class CompanyRepository {
   async create(userId, data) {
@@ -70,11 +71,11 @@ export class CompanyRepository {
     ])
 
     return {
-      companies,
-      total,
+      companies: safeArray(companies),
+      total: safeNumber(total),
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(safeNumber(total) / limit),
     }
   }
 
@@ -164,16 +165,16 @@ export class CompanyRepository {
   }
 
   async findRecent(userId, limit = 10) {
-    return Company.find({ userId, deletedAt: null })
+    return safeArray(await Company.find({ userId, deletedAt: null })
       .sort({ createdAt: -1 })
       .limit(limit)
-      .lean()
+      .lean())
   }
 
   async findFavorites(userId) {
-    return Company.find({ userId, favorite: true, deletedAt: null })
+    return safeArray(await Company.find({ userId, favorite: true, deletedAt: null })
       .sort({ updatedAt: -1 })
-      .lean()
+      .lean())
   }
 
   async getStats(userId) {
@@ -184,9 +185,9 @@ export class CompanyRepository {
     ])
 
     return {
-      total,
-      statusCounts,
-      industryCounts,
+      total: safeNumber(total),
+      statusCounts: safeArray(statusCounts),
+      industryCounts: safeArray(industryCounts),
     }
   }
 

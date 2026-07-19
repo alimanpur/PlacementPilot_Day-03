@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 import { Interview } from '../models/interview.model.js'
+import { safeArray, safeObject, safeNumber } from '../lib/safeData.js'
 
 export class InterviewRepository {
   async create(userId, data) {
@@ -307,7 +308,7 @@ export class InterviewRepository {
   // Analytics & Stats
   async getUpcomingInterviews(userId, limit = 10) {
     const now = new Date()
-    return Interview.find({
+    return safeArray(await Interview.find({
       userId,
       deletedAt: null,
       archived: false,
@@ -318,7 +319,7 @@ export class InterviewRepository {
       .limit(limit)
       .populate('companyId', 'name industry logo')
       .populate('applicationId', 'company role currentStage')
-      .lean()
+      .lean())
   }
 
   async getTodayInterviews(userId) {
@@ -327,7 +328,7 @@ export class InterviewRepository {
     const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
 
-    return Interview.find({
+    return safeArray(await Interview.find({
       userId,
       deletedAt: null,
       archived: false,
@@ -337,12 +338,12 @@ export class InterviewRepository {
       .sort({ scheduledTime: 1 })
       .populate('companyId', 'name industry logo')
       .populate('applicationId', 'company role currentStage')
-      .lean()
+      .lean())
   }
 
   async getPastInterviews(userId, limit = 10) {
     const now = new Date()
-    return Interview.find({
+    return safeArray(await Interview.find({
       userId,
       deletedAt: null,
       scheduledDate: { $lt: now },
@@ -352,7 +353,7 @@ export class InterviewRepository {
       .limit(limit)
       .populate('companyId', 'name industry logo')
       .populate('applicationId', 'company role currentStage')
-      .lean()
+      .lean())
   }
 
   async getInterviewsByDateRange(userId, startDate, endDate) {

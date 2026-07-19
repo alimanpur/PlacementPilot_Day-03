@@ -1,4 +1,6 @@
+import mongoose from 'mongoose'
 import { Goal } from '../models/goal.model.js'
+import { safeArray, safeObject, safeNumber } from '../lib/safeData.js'
 
 export class GoalRepository {
   async create(userId, data) {
@@ -14,11 +16,11 @@ export class GoalRepository {
   }
 
   async findActive(userId) {
-    return Goal.find({ userId, deletedAt: null, status: 'active' }).sort({ deadline: 1 })
+    return safeArray(await Goal.find({ userId, deletedAt: null, status: 'active' }).sort({ deadline: 1 }))
   }
 
   async findCompleted(userId) {
-    return Goal.find({ userId, deletedAt: null, status: 'completed' }).sort({ completedAt: -1 })
+    return safeArray(await Goal.find({ userId, deletedAt: null, status: 'completed' }).sort({ completedAt: -1 }))
   }
 
   async update(userId, id, data) {
@@ -46,9 +48,9 @@ export class GoalRepository {
   }
 
   async findRecent(userId, limit = 10) {
-    return Goal.find({ userId, deletedAt: null })
+    return safeArray(await Goal.find({ userId, deletedAt: null })
       .sort({ createdAt: -1 })
-      .limit(limit)
+      .limit(limit))
   }
 
   async getGoalStats(userId) {
@@ -70,11 +72,11 @@ export class GoalRepository {
     ])
 
     return {
-      total,
-      active,
-      completed,
+      total: safeNumber(total),
+      active: safeNumber(active),
+      completed: safeNumber(completed),
       completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
-      byCategory,
+      byCategory: safeArray(byCategory),
     }
   }
 }

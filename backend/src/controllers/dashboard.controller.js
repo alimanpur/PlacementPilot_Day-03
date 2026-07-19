@@ -7,6 +7,13 @@ import { UserRepository } from '../repositories/user.repository.js'
 import { DSAService } from '../services/dsa.service.js'
 import { PlannerService } from '../services/planner.service.js'
 import { asyncWrapper } from '../middlewares/errorHandler.js'
+import { logger } from '../lib/logger.js'
+import {
+  safeArray,
+  safeObject,
+  safeNumber,
+  resolveWidgets,
+} from '../lib/safeData.js'
 
 const analyticsService = new AnalyticsService()
 const companyRepo = new CompanyRepository()
@@ -17,30 +24,77 @@ const plannerService = new PlannerService()
 const goalRepo = new GoalRepository()
 const userRepo = new UserRepository()
 
-async function safePromise(promise, defaultValue) {
-  try {
-    return await promise
-  } catch (error) {
-    console.error('Dashboard safePromise error:', error.message)
-    return defaultValue
+const DASHBOARD_DEFAULTS = {
+  user: null,
+  readiness: { overall: 0, coding: 0, interviewReadiness: 0, goalReadiness: 0, profileScore: 0 },
+  applicationStats: { total: 0, offers: 0, rejected: 0, inProgress: 0, hot: 0 },
+  companies: { companies: [], total: 0 },
+  interviews: [],
+  notifications: [],
+  dsaStats: { totalSolved: 0, weeklySolved: 0, weeklyDelta: 0, weakTopics: [], difficultyBreakdown: { easy: 0, medium: 0, hard: 0 }, streak: 0, revisionQueueCount: 0, heatmap: [], sessionsThisWeek: 0, averageSessionTime: 0 },
+  todayTasks: { tasks: [], completedToday: 0, totalTasks: 0, priorityQueue: [], upcomingDeadlines: [], interviewPrep: [], revisionQueue: [], overdue: [] },
+  goals: [],
+  streak: 0,
+  heatmap: [],
+  weeklyTrend: [],
+  onboardingStatus: { completed: false, steps: {} },
+  longestStreak: 0,
+  monthlySolved: 0,
+  pastInterviews: [],
+  plannerTasks: [],
+}
+
+/**
+ * Final safety net for dashboard endpoints. Even if an unexpected error escapes
+ * the per-widget guards, we log the FULL stack trace and respond with a safe,
+ * well-shaped 200 payload instead of an HTTP 500 — a partial/empty dashboard
+ * is always preferable to a blank page.
+ */
+function safeDashboardHandler(handler, endpoint) {
+  return asyncWrapper(async (req, res) => {
+    try {
+      return await handler(req, res)
+    } catch (error) {
+      logger.error('Dashboard endpoint failed — returning safe fallback', {
+        endpoint,
+        userId: req.user?._id?.toString(),
+        error: error?.message,
+        stack: error?.stack,
+        context: 'dashboard',
+      })
+      res.status(200).json({
+        success: true,
+        message: 'Dashboard data retrieved (partial)',
+        data: emptyDashboardData(),
+      })
+    }
+  })
+}
+
+function emptyDashboardData() {
+  return {
+    user: { name: '', email: '', onboarding: { completed: false, steps: {} } },
+    readiness: DASHBOARD_DEFAULTS.readiness,
+    applicationStats: DASHBOARD_DEFAULTS.applicationStats,
+    companies: [],
+    hotCompanies: [],
+    interviews: [],
+    notifications: [],
+    todayFocus: [],
+    dsaStats: { totalSolved: 0, weeklySolved: 0, weeklyDelta: 0, weakTopics: [] },
+    streak: 0,
+    codingStats: { currentStreak: 0, longestStreak: 0, weeklySolved: 0, monthlySolved: 0, totalSolved: 0 },
+    heatmap: [],
+    weeklyTrend: [],
+    goals: [],
+    recentActivity: [],
+    stats: { applications: 0, interviews: 0, offers: 0, rejections: 0, problemsSolved: 0, goalsCompleted: 0, tasksCompleted: 0 },
   }
-}
-
-function safeArray(value) {
-  return Array.isArray(value) ? value : []
-}
-
-function safeObject(value) {
-  return value && typeof value === 'object' ? value : {}
-}
-
-function safeNumber(value, defaultValue = 0) {
-  return typeof value === 'number' && !isNaN(value) ? value : defaultValue
 }
 
 // GET /dashboard/overview - Unified endpoint for initial render
 const overviewCache = new Map()
-export const getDashboardOverview = asyncWrapper(async (req, res) => {
+export const getDashboardOverview = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
   const cacheKey = `${userId}:overview`
   const cached = overviewCache.get(cacheKey)
@@ -48,7 +102,32 @@ export const getDashboardOverview = asyncWrapper(async (req, res) => {
     return res.json(cached.payload)
   }
 
-  const [
+  // Each widget is resolved independently. If one widget throws (e.g. a missing
+  // index, a repository returning undefined), only that widget falls back to its
+  // default — the rest of the dashboard still renders and the request stays 200.
+  const widgets = await resolveWidgets(
+    [
+      ['user', userRepo.findById(userId)],
+      ['readiness', analyticsService.getReadinessScore(userId)],
+      ['applicationStats', analyticsService.getApplicationStats(userId)],
+      ['companies', companyRepo.findAll(userId)],
+      ['interviews', interviewRepo.getUpcomingInterviews(userId, 10)],
+      ['notifications', notificationRepo.findUnread(userId)],
+      ['dsaStats', dsaService.getStats(userId)],
+      ['todayTasks', plannerService.getTodayFocus(userId)],
+      ['goals', goalRepo.findActive(userId)],
+      ['streak', analyticsService.getStreak(userId)],
+      ['heatmap', analyticsService.getHeatmapData(userId, 84)],
+      ['weeklyTrend', analyticsService.getWeeklyTrend(userId, 4)],
+      ['onboardingStatus', userRepo.getOnboardingStatus(userId)],
+      ['longestStreak', analyticsService.getLongestStreak(userId)],
+      ['monthlySolved', analyticsService.getMonthlySolved(userId)],
+    ],
+    DASHBOARD_DEFAULTS,
+    'dashboard:overview',
+  )
+
+  const {
     user,
     readiness,
     applicationStats,
@@ -61,22 +140,10 @@ export const getDashboardOverview = asyncWrapper(async (req, res) => {
     streak,
     heatmap,
     weeklyTrend,
-    onboardingStatus
-  ] = await Promise.all([
-    safePromise(userRepo.findById(userId), null),
-    safePromise(analyticsService.getReadinessScore(userId), { overall: 0, coding: 0, interviewReadiness: 0, goalReadiness: 0, profileScore: 0 }),
-    safePromise(analyticsService.getApplicationStats(userId), { total: 0, offers: 0, rejected: 0, inProgress: 0, hot: 0 }),
-    safePromise(companyRepo.findAll(userId), { companies: [], total: 0 }),
-    safePromise(interviewRepo.getUpcomingInterviews(userId, 10), []),
-    safePromise(notificationRepo.findUnread(userId), []),
-    safePromise(dsaService.getStats(userId), { totalSolved: 0, weeklySolved: 0, weeklyDelta: 0, weakTopics: [], difficultyBreakdown: { easy: 0, medium: 0, hard: 0 }, streak: 0, revisionQueueCount: 0, heatmap: [], sessionsThisWeek: 0, averageSessionTime: 0 }),
-    safePromise(plannerService.getTodayFocus(userId), { tasks: [], completedToday: 0, totalTasks: 0, priorityQueue: [], upcomingDeadlines: [], interviewPrep: [], revisionQueue: [], overdue: [] }),
-    safePromise(goalRepo.findActive(userId), []),
-    safePromise(analyticsService.getStreak(userId), 0),
-    safePromise(analyticsService.getHeatmapData(userId, 84), []),
-    safePromise(analyticsService.getWeeklyTrend(userId, 4), []),
-    safePromise(userRepo.getOnboardingStatus(userId), { completed: false, steps: {} }),
-  ])
+    onboardingStatus,
+    longestStreak,
+    monthlySolved,
+  } = widgets
 
   const companiesList = safeArray(companies?.companies || companies)
   const activeCompanies = companiesList.filter((c) => c && c.status !== 'closed')
@@ -108,9 +175,9 @@ export const getDashboardOverview = asyncWrapper(async (req, res) => {
 
   const codingStats = {
     currentStreak: safeNumber(streak),
-    longestStreak: await safePromise(analyticsService.getLongestStreak(userId), 0),
+    longestStreak: safeNumber(longestStreak),
     weeklySolved: safeNumber(dsaStats?.weeklySolved),
-    monthlySolved: await safePromise(analyticsService.getMonthlySolved(userId), 0),
+    monthlySolved: safeNumber(monthlySolved),
     totalSolved: safeNumber(dsaStats?.totalSolved),
   }
 
@@ -159,25 +226,29 @@ export const getDashboardOverview = asyncWrapper(async (req, res) => {
 })
 
 // GET /dashboard/activity - Recent activity feed
-export const getDashboardActivity = asyncWrapper(async (req, res) => {
+export const getDashboardActivity = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
   const limit = parseInt(req.query.limit) || 20
 
-  const [companies, interviews, goals, plannerTasks, notifications] = await Promise.all([
-    safePromise(companyRepo.findRecent(userId, limit), []),
-    safePromise(interviewRepo.getPastInterviews(userId, limit), []),
-    safePromise(goalRepo.findRecent(userId, limit), []),
-    safePromise(plannerService.findRecent(userId, limit), []),
-    safePromise(notificationRepo.findRecent(userId, limit), []),
-  ])
+  const widgets = await resolveWidgets(
+    [
+      ['companies', companyRepo.findRecent(userId, limit)],
+      ['pastInterviews', interviewRepo.getPastInterviews(userId, limit)],
+      ['goals', goalRepo.findRecent(userId, limit)],
+      ['plannerTasks', plannerService.findRecent(userId, limit)],
+      ['notifications', notificationRepo.findRecent(userId, limit)],
+    ],
+    DASHBOARD_DEFAULTS,
+    'dashboard:activity',
+  )
 
   const activity = await generateRecentActivity(
     userId,
-    safeArray(companies),
-    safeArray(interviews),
-    safeArray(goals),
-    safeArray(plannerTasks),
-    safeArray(notifications),
+    safeArray(widgets.companies),
+    safeArray(widgets.pastInterviews),
+    safeArray(widgets.goals),
+    safeArray(widgets.plannerTasks),
+    safeArray(widgets.notifications),
     limit
   )
 
@@ -189,54 +260,55 @@ export const getDashboardActivity = asyncWrapper(async (req, res) => {
 })
 
 // GET /dashboard/readiness - Detailed readiness breakdown
-export const getDashboardReadiness = asyncWrapper(async (req, res) => {
+export const getDashboardReadiness = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
 
-  const [readiness, breakdown] = await Promise.all([
-    safePromise(analyticsService.getReadinessScore(userId), { overall: 0, coding: 0, interviewReadiness: 0, goalReadiness: 0, profileScore: 0 }),
-    safePromise(analyticsService.getReadinessBreakdown(userId), {}),
-  ])
+  const widgets = await resolveWidgets(
+    [
+      ['readiness', analyticsService.getReadinessScore(userId)],
+      ['breakdown', analyticsService.getReadinessBreakdown(userId)],
+    ],
+    DASHBOARD_DEFAULTS,
+    'dashboard:readiness',
+  )
 
   res.json({
     success: true,
     message: 'Readiness data retrieved',
-    data: { readiness: safeObject(readiness), breakdown: safeObject(breakdown) },
+    data: { readiness: safeObject(widgets.readiness), breakdown: safeObject(widgets.breakdown) },
   })
 })
 
 // GET /dashboard/focus - Today's focus recommendations
-export const getDashboardFocus = asyncWrapper(async (req, res) => {
+export const getDashboardFocus = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
 
-  const [
-    companies,
-    dsaStats,
-    goals,
-    todayTasks,
-    upcomingInterviews,
-    weakTopics
-  ] = await Promise.all([
-    safePromise(companyRepo.findAll(userId), { companies: [], total: 0 }),
-    safePromise(dsaService.getStats(userId), { totalSolved: 0, weakTopics: [] }),
-    safePromise(goalRepo.findActive(userId), []),
-    safePromise(plannerService.getTodayFocus(userId), { tasks: [] }),
-    safePromise(interviewRepo.getUpcomingInterviews(userId, 10), []),
-    safePromise(dsaService.getWeakTopics(userId, 3), []),
-  ])
+  const widgets = await resolveWidgets(
+    [
+      ['companies', companyRepo.findAll(userId)],
+      ['dsaStats', dsaService.getStats(userId)],
+      ['goals', goalRepo.findActive(userId)],
+      ['todayTasks', plannerService.getTodayFocus(userId)],
+      ['upcomingInterviews', interviewRepo.getUpcomingInterviews(userId, 10)],
+      ['weakTopics', dsaService.getWeakTopics(userId, 3)],
+      ['readiness', analyticsService.getReadinessScore(userId)],
+    ],
+    DASHBOARD_DEFAULTS,
+    'dashboard:focus',
+  )
 
-  const companiesList = safeArray(companies?.companies || companies)
+  const companiesList = safeArray(widgets.companies?.companies || widgets.companies)
   const activeCompanies = companiesList.filter((c) => c && c.status !== 'closed')
-  const readiness = await safePromise(analyticsService.getReadinessScore(userId), { overall: 0, coding: 0, interviewReadiness: 0, goalReadiness: 0, profileScore: 0 })
 
   const todayFocus = generateTodayFocus({
     hasCompanies: activeCompanies.length > 0,
-    hasDsa: safeNumber(dsaStats?.totalSolved) > 0,
-    hasGoals: safeArray(goals).length > 0,
-    hasPlanner: safeArray(todayTasks?.tasks).length > 0,
-    readiness: safeObject(readiness),
+    hasDsa: safeNumber(widgets.dsaStats?.totalSolved) > 0,
+    hasGoals: safeArray(widgets.goals).length > 0,
+    hasPlanner: safeArray(widgets.todayTasks?.tasks).length > 0,
+    readiness: safeObject(widgets.readiness),
     hotCompanies: activeCompanies.filter((c) => c && (c.status === 'hot' || c.status === 'offer')),
-    upcomingInterviews: safeArray(upcomingInterviews),
-    weakTopics: safeArray(weakTopics),
+    upcomingInterviews: safeArray(widgets.upcomingInterviews),
+    weakTopics: safeArray(widgets.weakTopics),
   })
 
   res.json({
@@ -247,19 +319,21 @@ export const getDashboardFocus = asyncWrapper(async (req, res) => {
 })
 
 // GET /dashboard/quick-actions - Available quick actions based on user state
-export const getDashboardQuickActions = asyncWrapper(async (req, res) => {
+export const getDashboardQuickActions = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
 
-  const [
-    companies,
-    hasProfile
-  ] = await Promise.all([
-    safePromise(companyRepo.findAll(userId), { companies: [], total: 0 }),
-    safePromise(userRepo.hasCompleteProfile(userId), false),
-  ])
+  const widgets = await resolveWidgets(
+    [
+      ['companies', companyRepo.findAll(userId)],
+      ['hasProfile', userRepo.hasCompleteProfile(userId)],
+    ],
+    DASHBOARD_DEFAULTS,
+    'dashboard:quick-actions',
+  )
 
-  const companiesList = safeArray(companies?.companies || companies)
+  const companiesList = safeArray(widgets.companies?.companies || widgets.companies)
   const activeCompanies = companiesList.filter((c) => c && c.status !== 'closed')
+  const hasProfile = widgets.hasProfile === true
   const actions = [
     { id: 'add-application', label: 'Add Application', icon: '📋', available: true, route: '/app/applications' },
     { id: 'log-dsa', label: 'Log DSA Problem', icon: '🧮', available: true, route: '/app/dsa' },
