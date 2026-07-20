@@ -2683,6 +2683,21 @@ export const useSettings = () => {
   })
 }
 
+export const useUpdateNotificationPreferences = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.updateNotificationPreferences,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+      toast.success('Notification preferences updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update notification preferences')
+    },
+  })
+}
+
 export const useUpdateSettings = () => {
   const queryClient = useQueryClient()
   return useMutation({
