@@ -98,6 +98,193 @@ export const useProfile = () => {
   })
 }
 
+// Profile hooks — used by Profile page
+export const useUpdateProfile = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.updateProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+      toast.success('Profile updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update profile')
+    },
+  })
+}
+
+export const useProfileSummary = () => {
+  return useQuery({
+    queryKey: ['profile', 'summary'],
+    queryFn: async () => {
+      const response = await api.getProfileSummary()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+  })
+}
+
+export const useActivityTimeline = (limit = 50) => {
+  return useQuery({
+    queryKey: ['profile', 'activity', limit],
+    queryFn: async () => {
+      const response = await api.getActivityTimeline(limit)
+      return response.data.data.activities
+    },
+    staleTime: 1000 * 60 * 2,
+    retry: 1,
+  })
+}
+
+export const useCheckAchievements = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.checkAchievements,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', 'achievements'] })
+      toast.success('Achievements checked')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to check achievements')
+    },
+  })
+}
+
+export const useProfileAchievements = () => {
+  return useQuery({
+    queryKey: ['profile', 'achievements'],
+    queryFn: async () => {
+      const response = await api.getProfileAchievements()
+      return response.data.data.achievements
+    },
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+  })
+}
+
+export const useDocuments = () => {
+  return useQuery({
+    queryKey: ['profile', 'documents'],
+    queryFn: async () => {
+      const response = await api.getDocuments()
+      return response.data.data.documents
+    },
+    staleTime: 1000 * 60 * 2,
+    retry: 1,
+  })
+}
+
+export const useCreateDocument = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.createDocument,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', 'documents'] })
+      toast.success('Document uploaded')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to upload document')
+    },
+  })
+}
+
+export const useUpdateDocument = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.updateDocument(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', 'documents'] })
+      toast.success('Document updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update document')
+    },
+  })
+}
+
+export const useDeleteDocument = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.deleteDocument,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', 'documents'] })
+      toast.success('Document deleted')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to delete document')
+    },
+  })
+}
+
+export const useArchiveDocument = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, archived }) => api.archiveDocument(id, archived),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', 'documents'] })
+      toast.success('Document archived')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to archive document')
+    },
+  })
+}
+
+export const useSkills = () => {
+  return useQuery({
+    queryKey: ['profile', 'skills'],
+    queryFn: async () => {
+      const response = await api.getSkills()
+      return response.data.data.skills
+    },
+    staleTime: 1000 * 60 * 2,
+    retry: 1,
+  })
+}
+
+export const useCreateSkill = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.createSkill,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', 'skills'] })
+      toast.success('Skill added')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to add skill')
+    },
+  })
+}
+
+export const useUpdateSkill = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.updateSkill(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', 'skills'] })
+      toast.success('Skill updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update skill')
+    },
+  })
+}
+
+export const useDeleteSkill = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.deleteSkill,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', 'skills'] })
+      toast.success('Skill removed')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to remove skill')
+    },
+  })
+}
+
 // Dashboard hooks
 export const useDashboard = () => {
   return useQuery({
