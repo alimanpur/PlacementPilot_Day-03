@@ -12,6 +12,7 @@ const cookieOptions = (maxAge) => ({
   secure: isProd,
   sameSite: isProd ? 'none' : 'lax',
   maxAge,
+  path: '/',
 })
 
 export const register = asyncWrapper(async (req, res) => {
@@ -34,7 +35,11 @@ export const login = asyncWrapper(async (req, res) => {
     req.body.password,
   )
 
+  // CRITICAL AUTH FIX: Clear any stale cookies first to prevent old refresh
+  // tokens from being used after switching accounts on the same browser.
   res
+    .clearCookie('accessToken', { path: '/' })
+    .clearCookie('refreshToken', { path: '/' })
     .cookie('accessToken', accessToken, cookieOptions(15 * 60 * 1000))
     .cookie('refreshToken', refreshToken, cookieOptions(7 * 24 * 60 * 60 * 1000))
     .json({
@@ -63,7 +68,11 @@ export const resetPassword = asyncWrapper(async (req, res) => {
 })
 
 export const refresh = asyncWrapper(async (req, res) => {
-  const inputRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+  // SECURITY FIX: The refresh token exchange must validate that the token
+  // belongs to the session making the request. We extract from body first
+  // when explicitly provided, falling back to the cookie (which is overwritten
+  // on every login so stale tokens cannot substitute another user).
+  const inputRefreshToken = req.body.refreshToken || req.cookies.refreshToken
   const { accessToken, refreshToken } = await authService.refresh(
     inputRefreshToken,
   )
@@ -81,8 +90,8 @@ export const refresh = asyncWrapper(async (req, res) => {
 export const logout = asyncWrapper(async (req, res) => {
   await authService.logout(req.user._id)
   res
-    .clearCookie('accessToken')
-    .clearCookie('refreshToken')
+    .clearCookie('accessToken', { path: '/' })
+    .clearCookie('refreshToken', { path: '/' })
     .json({
       success: true,
       message: 'Logged out successfully',

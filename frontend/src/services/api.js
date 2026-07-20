@@ -51,7 +51,7 @@ function isAuthError(error) {
 function isRefreshUnavailable(error) {
   const status = error.response?.status
   const code = error.response?.data?.code
-  return status === 401 && (code === 'REFRESH_TOKEN_INVALID' || code === 'REFRESH_TOKEN_EXPIRED')
+  return status === 401 && (code === 'REFRESH_TOKEN_INVALID' || code === 'REFRESH_TOKEN_EXPIRED' || code === 'REFRESH_TOKEN_ROTATED')
 }
 
 // Request interceptor - add auth token

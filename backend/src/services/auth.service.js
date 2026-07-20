@@ -10,8 +10,10 @@ const userRepo = new UserRepository()
 
 export class AuthService {
   generateAccessToken(user) {
+    // CRITICAL: The JWT subject MUST be the user's _id string. Always use
+    // user._id.toString() to guarantee a string primitive, not an ObjectId wrapper.
     return jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id.toString(), email: user.email },
       config.JWT_SECRET,
       { expiresIn: config.JWT_EXPIRES_IN },
     )
@@ -59,6 +61,9 @@ export class AuthService {
     const accessToken = this.generateAccessToken(user)
     const { token: refreshToken, expires } = this.generateRefreshToken()
 
+    // CRITICAL AUTH FIX: Atomically rotate the refresh token on every login.
+    // This ensures any old refresh token (from a previous session or another
+    // device) is immediately invalidated, preventing cross-user substitution.
     await userRepo.updateRefreshToken(user._id, refreshToken, expires)
 
     authLogger.info('User logged in', { userId: user._id, email: user.email })
@@ -102,11 +107,28 @@ export class AuthService {
   }
 
   async refresh(refreshToken) {
+    if (!refreshToken) {
+      const error = new Error('Refresh token required')
+      error.statusCode = 401
+      error.code = 'REFRESH_TOKEN_REQUIRED'
+      throw error
+    }
+
     const user = await userRepo.findByRefreshToken(refreshToken)
-    if (!user || user.refreshToken !== refreshToken) {
+    if (!user) {
       const error = new Error('Invalid refresh token')
       error.statusCode = 401
       error.code = 'REFRESH_TOKEN_INVALID'
+      throw error
+    }
+
+    // CRITICAL: Verify exact string match. If the repository returned a user
+    // but the stored token doesn't match (e.g., race condition or the token
+    // was rotated), we must NOT authenticate as that user.
+    if (user.refreshToken !== refreshToken) {
+      const error = new Error('Refresh token has been rotated — re-login required')
+      error.statusCode = 401
+      error.code = 'REFRESH_TOKEN_ROTATED'
       throw error
     }
 
@@ -120,12 +142,15 @@ export class AuthService {
     const accessToken = this.generateAccessToken(user)
     const { token: newRefreshToken, expires } = this.generateRefreshToken()
 
+    // Rotate the refresh token (token rotation) — the old token cannot be reused.
     await userRepo.updateRefreshToken(user._id, newRefreshToken, expires)
 
     return { accessToken, refreshToken: newRefreshToken }
   }
 
   async logout(userId) {
+    // CRITICAL: Clear the stored refresh token so it cannot be reused even if
+    // a cookie somehow persists on the client.
     await userRepo.updateRefreshToken(userId, null, null)
     authLogger.info('User logged out', { userId })
   }

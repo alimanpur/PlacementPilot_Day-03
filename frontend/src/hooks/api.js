@@ -12,6 +12,9 @@ export const useRegister = () => {
       if (accessToken) {
         localStorage.setItem('accessToken', accessToken)
       }
+      // CRITICAL: Clear ALL cached data on register to prevent stale data
+      // from a previous session bleeding into the new user's dashboard.
+      queryClient.clear()
       queryClient.setQueryData(['user'], user)
       toast.success(response.data.message || 'Account created successfully')
     },
@@ -30,8 +33,12 @@ export const useLogin = () => {
       if (accessToken) {
         localStorage.setItem('accessToken', accessToken)
       }
+      // CRITICAL AUTH FIX: Clear ALL cached data on login. This prevents
+      // stale React Query cache from a previous user's session (e.g. dashboard
+      // data, profile, companies) from being displayed to the newly logged-in
+      // user before the fresh queries complete.
+      queryClient.clear()
       queryClient.setQueryData(['user'], user)
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Welcome back, captain.')
     },
     onError: (error) => {
@@ -46,6 +53,8 @@ export const useLogout = () => {
     mutationFn: api.logout,
     onSuccess: () => {
       localStorage.removeItem('accessToken')
+      // CRITICAL: Clear ALL cached data on logout so the next user who logs
+      // in on this browser does not see stale data from the previous session.
       queryClient.clear()
       toast.success('Logged out successfully')
     },
@@ -389,7 +398,7 @@ export const useDeleteResource = () => {
       toast.success('Resource removed')
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to delete resource')
+      toast.error(error.response?.data?.message || 'Failed to remove resource')
     },
   })
 }
@@ -1007,6 +1016,21 @@ export const useDeleteDsaTopic = () => {
   })
 }
 
+export const useLogDsaProblem = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.logDsaProblem,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dsa'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Problem logged')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to log problem')
+    },
+  })
+}
+
 export const useDsaProblems = (params = {}) => {
   return useQuery({
     queryKey: ['dsa', 'problems', params],
@@ -1030,33 +1054,13 @@ export const useDsaProblem = (id) => {
   })
 }
 
-export const useLogDsaProblem = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.logDsaProblem,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'problems'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'topics'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'stats'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'dashboard'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      queryClient.invalidateQueries({ queryKey: ['analytics'] })
-      toast.success('Problem logged')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to log problem')
-    },
-  })
-}
-
 export const useUpdateDsaProblem = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }) => api.updateDsaProblem(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'problems'] })
+      queryClient.invalidateQueries({ queryKey: ['dsa'] })
       queryClient.invalidateQueries({ queryKey: ['dsa', 'problems', variables.id] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'topics'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Problem updated')
     },
@@ -1071,8 +1075,7 @@ export const useDeleteDsaProblem = () => {
   return useMutation({
     mutationFn: api.deleteDsaProblem,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'problems'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'topics'] })
+      queryClient.invalidateQueries({ queryKey: ['dsa'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Problem deleted')
     },
@@ -1087,13 +1090,12 @@ export const useBulkUpdateDsaProblems = () => {
   return useMutation({
     mutationFn: api.bulkUpdateDsaProblems,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'problems'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'topics'] })
+      queryClient.invalidateQueries({ queryKey: ['dsa'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      toast.success('Bulk action completed')
+      toast.success('Problems updated')
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Bulk action failed')
+      toast.error(error.response?.data?.message || 'Failed to update problems')
     },
   })
 }
@@ -1102,10 +1104,11 @@ export const useToggleDsaFavorite = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: api.toggleDsaFavorite,
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'problems'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'problems', id] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'favorites'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dsa'] })
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to toggle favorite')
     },
   })
 }
@@ -1114,10 +1117,11 @@ export const useToggleDsaBookmark = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: api.toggleDsaBookmark,
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'problems'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'problems', id] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'bookmarks'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dsa'] })
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to toggle bookmark')
     },
   })
 }
@@ -1126,32 +1130,12 @@ export const useToggleDsaStar = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: api.toggleDsaStar,
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'problems'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'problems', id] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dsa'] })
     },
-  })
-}
-
-export const useDsaBookmarks = (params = {}) => {
-  return useQuery({
-    queryKey: ['dsa', 'bookmarks', params],
-    queryFn: async () => {
-      const response = await api.getDsaBookmarks(params)
-      return response.data.data
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to toggle star')
     },
-    staleTime: 1000 * 60 * 5,
-  })
-}
-
-export const useDsaFavorites = (params = {}) => {
-  return useQuery({
-    queryKey: ['dsa', 'favorites', params],
-    queryFn: async () => {
-      const response = await api.getDsaFavorites(params)
-      return response.data.data
-    },
-    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -1162,15 +1146,26 @@ export const useDsaStats = () => {
       const response = await api.getDsaStats()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
 export const useDsaDashboardStats = () => {
   return useQuery({
-    queryKey: ['dsa', 'dashboard'],
+    queryKey: ['dsa', 'dashboard-stats'],
     queryFn: async () => {
       const response = await api.getDsaDashboardStats()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const useDsaRevisionQueue = () => {
+  return useQuery({
+    queryKey: ['dsa', 'revision-queue'],
+    queryFn: async () => {
+      const response = await api.getDsaRevisionQueue()
       return response.data.data
     },
     staleTime: 1000 * 60 * 2,
@@ -1184,72 +1179,95 @@ export const useDsaInsights = () => {
       const response = await api.getDsaInsights()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
-export const useDsaDailyRevisions = () => {
+export const useDsaHeatmap = (days = 84) => {
   return useQuery({
-    queryKey: ['dsa', 'revisions', 'daily'],
+    queryKey: ['dsa', 'heatmap', days],
     queryFn: async () => {
-      const response = await api.getDsaDailyRevisionQueue()
-      return response.data.data.revisions
+      const response = await api.getDsaHeatmap(days)
+      return response.data.data
     },
     staleTime: 1000 * 60 * 5,
   })
 }
 
-export const useDsaMissedRevisions = () => {
+export const useDsaStreak = () => {
   return useQuery({
-    queryKey: ['dsa', 'revisions', 'missed'],
+    queryKey: ['dsa', 'streak'],
     queryFn: async () => {
-      const response = await api.getDsaMissedRevisions()
-      return response.data.data.revisions
+      const response = await api.getDsaStreak()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const useDsaWeakTopics = (limit = 5) => {
+  return useQuery({
+    queryKey: ['dsa', 'weak-topics', limit],
+    queryFn: async () => {
+      const response = await api.getDsaWeakTopics(limit)
+      return response.data.data
     },
     staleTime: 1000 * 60 * 5,
   })
 }
 
-export const useCompleteDsaRevision = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.completeDsaRevision,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'revisions'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'revision-queue'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'dashboard'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      toast.success('Revision completed')
+export const useDsaStrongTopics = (limit = 5) => {
+  return useQuery({
+    queryKey: ['dsa', 'strong-topics', limit],
+    queryFn: async () => {
+      const response = await api.getDsaStrongTopics(limit)
+      return response.data.data
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to complete revision')
-    },
+    staleTime: 1000 * 60 * 5,
   })
 }
 
-export const useSkipDsaRevision = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.skipDsaRevision,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'revisions'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'revision-queue'] })
-      toast.success('Revision skipped')
+export const useDsaCompanyReadiness = (companyName) => {
+  return useQuery({
+    queryKey: ['dsa', 'company-readiness', companyName],
+    queryFn: async () => {
+      const response = await api.getDsaCompanyReadiness(companyName)
+      return response.data.data
     },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to skip revision')
-    },
+    enabled: !!companyName,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
-// Sessions hooks
+export const useDsaRecommendedProblems = (topics, limit = 10) => {
+  return useQuery({
+    queryKey: ['dsa', 'recommended', topics, limit],
+    queryFn: async () => {
+      const response = await api.getDsaRecommendedProblems(topics, limit)
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+export const useDsaTrends = (months = 6) => {
+  return useQuery({
+    queryKey: ['dsa', 'trends', months],
+    queryFn: async () => {
+      const response = await api.getDsaTrends(months)
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+// DSA Sessions hooks
 export const useCreateDsaSession = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: api.createDsaSession,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dsa', 'sessions'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Session started')
     },
@@ -1266,7 +1284,34 @@ export const useDsaSessions = (params = {}) => {
       const response = await api.getDsaSessions(params)
       return response.data.data
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const useDsaSession = (id) => {
+  return useQuery({
+    queryKey: ['dsa', 'sessions', id],
+    queryFn: async () => {
+      const response = await api.getDsaSession(id)
+      return response.data.data.session
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const useUpdateDsaSession = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.updateDsaSession(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['dsa', 'sessions', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Session updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update session')
+    },
   })
 }
 
@@ -1276,7 +1321,7 @@ export const useEndDsaSession = () => {
     mutationFn: api.endDsaSession,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dsa', 'sessions'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Session ended')
     },
     onError: (error) => {
@@ -1285,25 +1330,29 @@ export const useEndDsaSession = () => {
   })
 }
 
-// Roadmaps hooks
-export const useDsaRoadmaps = () => {
-  return useQuery({
-    queryKey: ['dsa', 'roadmaps'],
-    queryFn: async () => {
-      const response = await api.getDsaRoadmaps()
-      return response.data.data.roadmaps
+export const useDeleteDsaSession = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.deleteDsaSession,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dsa', 'sessions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Session deleted')
     },
-    staleTime: 1000 * 60 * 10,
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to delete session')
+    },
   })
 }
 
+// DSA Roadmaps hooks
 export const useCreateDsaRoadmap = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: api.createDsaRoadmap,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dsa', 'roadmaps'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Roadmap created')
     },
     onError: (error) => {
@@ -1312,13 +1361,36 @@ export const useCreateDsaRoadmap = () => {
   })
 }
 
+export const useDsaRoadmaps = () => {
+  return useQuery({
+    queryKey: ['dsa', 'roadmaps'],
+    queryFn: async () => {
+      const response = await api.getDsaRoadmaps()
+      return response.data.data.roadmaps
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+export const useDsaRoadmap = (id) => {
+  return useQuery({
+    queryKey: ['dsa', 'roadmaps', id],
+    queryFn: async () => {
+      const response = await api.getDsaRoadmap(id)
+      return response.data.data.roadmap
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
 export const useUpdateDsaRoadmap = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }) => api.updateDsaRoadmap(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'roadmaps'] })
       queryClient.invalidateQueries({ queryKey: ['dsa', 'roadmaps', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Roadmap updated')
     },
     onError: (error) => {
@@ -1333,7 +1405,7 @@ export const useDeleteDsaRoadmap = () => {
     mutationFn: api.deleteDsaRoadmap,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dsa', 'roadmaps'] })
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Roadmap deleted')
     },
     onError: (error) => {
@@ -1347,57 +1419,156 @@ export const useCompleteDsaRoadmapProblem = () => {
   return useMutation({
     mutationFn: ({ id, problemId }) => api.completeDsaRoadmapProblem(id, problemId),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['dsa', 'roadmaps'] })
       queryClient.invalidateQueries({ queryKey: ['dsa', 'roadmaps', variables.id] })
-      toast.success('Roadmap problem completed')
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Problem completed')
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to complete roadmap problem')
+      toast.error(error.response?.data?.message || 'Failed to complete problem')
     },
   })
 }
 
-export const useDsaHeatmap = (days = 84) => {
+export const useDsaRoadmapProgress = (id) => {
   return useQuery({
-    queryKey: ['dsa', 'heatmap', days],
+    queryKey: ['dsa', 'roadmaps', id, 'progress'],
     queryFn: async () => {
-      const response = await api.getDsaHeatmap(days)
-      return response.data.data.heatmap
+      const response = await api.getDsaRoadmapProgress(id)
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
-export const useDsaStreak = () => {
-  return useQuery({
-    queryKey: ['dsa', 'streak'],
-    queryFn: async () => {
-      const response = await api.getDsaStreak()
-      return response.data.data.streak
+// DSA Revisions hooks
+export const useCreateDsaRevision = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.createDsaRevision,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dsa', 'revisions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Revision created')
     },
-    staleTime: 1000 * 60 * 10,
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to create revision')
+    },
   })
 }
 
-export const useDsaWeakTopics = (limit = 5) => {
+export const useDsaRevisions = (params = {}) => {
   return useQuery({
-    queryKey: ['dsa', 'analytics', 'weak-topics', limit],
+    queryKey: ['dsa', 'revisions', params],
     queryFn: async () => {
-      const response = await api.getDsaWeakTopics(limit)
-      return response.data.data.topics
+      const response = await api.getDsaRevisions(params)
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
-export const useDsaStrongTopics = (limit = 5) => {
+export const useDsaRevision = (id) => {
   return useQuery({
-    queryKey: ['dsa', 'analytics', 'strong-topics', limit],
+    queryKey: ['dsa', 'revisions', id],
     queryFn: async () => {
-      const response = await api.getDsaStrongTopics(limit)
-      return response.data.data.topics
+      const response = await api.getDsaRevision(id)
+      return response.data.data.revision
     },
-    staleTime: 1000 * 60 * 10,
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const useUpdateDsaRevision = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.updateDsaRevision(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['dsa', 'revisions', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Revision updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update revision')
+    },
+  })
+}
+
+export const useCompleteDsaRevision = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.completeDsaRevision,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dsa', 'revisions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Revision completed')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to complete revision')
+    },
+  })
+}
+
+export const useSkipDsaRevision = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.skipDsaRevision,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dsa', 'revisions'] })
+      toast.success('Revision skipped')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to skip revision')
+    },
+  })
+}
+
+export const useDeleteDsaRevision = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.deleteDsaRevision,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dsa', 'revisions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Revision deleted')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to delete revision')
+    },
+  })
+}
+
+export const useDsaDailyRevisionQueue = () => {
+  return useQuery({
+    queryKey: ['dsa', 'revisions', 'daily'],
+    queryFn: async () => {
+      const response = await api.getDsaDailyRevisionQueue()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const useDsaWeeklyRevisionQueue = () => {
+  return useQuery({
+    queryKey: ['dsa', 'revisions', 'weekly'],
+    queryFn: async () => {
+      const response = await api.getDsaWeeklyRevisionQueue()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const useDsaMissedRevisions = () => {
+  return useQuery({
+    queryKey: ['dsa', 'revisions', 'missed'],
+    queryFn: async () => {
+      const response = await api.getDsaMissedRevisions()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 2,
   })
 }
 
@@ -1409,7 +1580,7 @@ export const useGoals = () => {
       const response = await api.getGoals()
       return response.data.data.goals
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
@@ -1487,11 +1658,6 @@ export const useCreatePlannerTask = () => {
   return useMutation({
     mutationFn: api.createPlannerTask,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['planner', 'tasks'] })
-      queryClient.invalidateQueries({ queryKey: ['planner', 'today-focus'] })
-      queryClient.invalidateQueries({ queryKey: ['planner', 'daily'] })
-      queryClient.invalidateQueries({ queryKey: ['planner', 'analytics'] })
-      queryClient.invalidateQueries({ queryKey: ['planner', 'stats'] })
       queryClient.invalidateQueries({ queryKey: ['planner'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Task created')
@@ -1555,10 +1721,10 @@ export const useBulkUpdatePlannerTasks = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planner'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      toast.success('Bulk action completed')
+      toast.success('Tasks updated')
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Bulk action failed')
+      toast.error(error.response?.data?.message || 'Failed to update tasks')
     },
   })
 }
@@ -1568,14 +1734,26 @@ export const usePlannerCalendar = (startDate, endDate) => {
     queryKey: ['planner', 'calendar', startDate, endDate],
     queryFn: async () => {
       const response = await api.getPlannerCalendar(startDate, endDate)
-      return response.data.data.events
+      return response.data.data
     },
     enabled: !!startDate && !!endDate,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
-export const usePlannerDaily = (date) => {
+export const useCheckPlannerConflict = (date, duration) => {
+  return useQuery({
+    queryKey: ['planner', 'conflict', date, duration],
+    queryFn: async () => {
+      const response = await api.checkPlannerConflict(date, duration)
+      return response.data.data
+    },
+    enabled: !!date,
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const useDailyPlanner = (date) => {
   return useQuery({
     queryKey: ['planner', 'daily', date],
     queryFn: async () => {
@@ -1603,6 +1781,7 @@ export const useGenerateSmartTasks = () => {
     mutationFn: api.generateSmartTasks,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planner'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Smart tasks generated')
     },
     onError: (error) => {
@@ -1616,9 +1795,9 @@ export const useSmartTasks = () => {
     queryKey: ['planner', 'smart-tasks'],
     queryFn: async () => {
       const response = await api.getSmartTasks()
-      return response.data.data.tasks
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
@@ -1629,14 +1808,15 @@ export const useSyncAllModules = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planner'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      toast.success('All modules synced')
+      toast.success('Modules synced')
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Sync failed')
+      toast.error(error.response?.data?.message || 'Failed to sync modules')
     },
   })
 }
 
+// Planner Habits hooks
 export const usePlannerHabits = () => {
   return useQuery({
     queryKey: ['planner', 'habits'],
@@ -1644,7 +1824,19 @@ export const usePlannerHabits = () => {
       const response = await api.getPlannerHabits()
       return response.data.data.habits
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const usePlannerHabit = (id) => {
+  return useQuery({
+    queryKey: ['planner', 'habits', id],
+    queryFn: async () => {
+      const response = await api.getPlannerHabit(id)
+      return response.data.data.habit
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
@@ -1663,12 +1855,43 @@ export const useCreatePlannerHabit = () => {
   })
 }
 
+export const useUpdatePlannerHabit = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.updatePlannerHabit(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['planner', 'habits', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Habit updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update habit')
+    },
+  })
+}
+
+export const useDeletePlannerHabit = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.deletePlannerHabit,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['planner', 'habits'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Habit deleted')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to delete habit')
+    },
+  })
+}
+
 export const useCompletePlannerHabit = () => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, date, value }) => api.completePlannerHabit(id, date, value),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planner', 'habits'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('Habit completed')
     },
     onError: (error) => {
@@ -1677,6 +1900,7 @@ export const useCompletePlannerHabit = () => {
   })
 }
 
+// Planner Goals hooks
 export const usePlannerGoals = () => {
   return useQuery({
     queryKey: ['planner', 'goals'],
@@ -1684,7 +1908,19 @@ export const usePlannerGoals = () => {
       const response = await api.getPlannerGoals()
       return response.data.data.goals
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const usePlannerGoal = (id) => {
+  return useQuery({
+    queryKey: ['planner', 'goals', id],
+    queryFn: async () => {
+      const response = await api.getPlannerGoal(id)
+      return response.data.data.goal
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
@@ -1703,6 +1939,52 @@ export const useCreatePlannerGoal = () => {
   })
 }
 
+export const useUpdatePlannerGoal = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.updatePlannerGoal(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['planner', 'goals', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Goal updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update goal')
+    },
+  })
+}
+
+export const useDeletePlannerGoal = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.deletePlannerGoal,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['planner', 'goals'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Goal deleted')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to delete goal')
+    },
+  })
+}
+
+export const useMarkPlannerGoalComplete = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.markPlannerGoalComplete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['planner', 'goals'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('Goal completed')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to complete goal')
+    },
+  })
+}
+
+// Planner Analytics hooks
 export const usePlannerAnalytics = () => {
   return useQuery({
     queryKey: ['planner', 'analytics'],
@@ -1710,7 +1992,7 @@ export const usePlannerAnalytics = () => {
       const response = await api.getPlannerAnalytics()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -1721,54 +2003,7 @@ export const usePlannerStats = () => {
       const response = await api.getPlannerStats()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 2,
-  })
-}
-
-// Legacy hooks
-export const usePlannerWeek = (start, end) => {
-  return useQuery({
-    queryKey: ['planner', 'week', start, end],
-    queryFn: async () => {
-      const response = await api.getPlannerWeek(start, end)
-      return response.data.data.tasks
-    },
-    enabled: !!start && !!end,
     staleTime: 1000 * 60 * 5,
-  })
-}
-
-export const usePlannerToday = () => {
-  return useQuery({
-    queryKey: ['planner', 'today'],
-    queryFn: async () => {
-      const response = await api.getPlannerToday()
-      return response.data.data.tasks
-    },
-    staleTime: 1000 * 60 * 2,
-  })
-}
-
-export const usePlannerTarget = () => {
-  return useQuery({
-    queryKey: ['planner', 'target'],
-    queryFn: async () => {
-      const response = await api.getPlannerTarget()
-      return response.data.data
-    },
-    staleTime: 1000 * 60 * 5,
-  })
-}
-
-// Achievements hooks
-export const useAchievements = () => {
-  return useQuery({
-    queryKey: ['achievements'],
-    queryFn: async () => {
-      const response = await api.getAchievements()
-      return response.data.data.achievements
-    },
-    staleTime: 1000 * 60 * 10,
   })
 }
 
@@ -1780,7 +2015,7 @@ export const useNotifications = () => {
       const response = await api.getNotifications()
       return response.data.data.notifications
     },
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 60 * 1,
   })
 }
 
@@ -1790,7 +2025,11 @@ export const useMarkAllNotificationsRead = () => {
     mutationFn: api.markAllNotificationsRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('All notifications marked as read')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to mark notifications as read')
     },
   })
 }
@@ -1801,80 +2040,15 @@ export const useMarkNotificationRead = () => {
     mutationFn: api.markNotificationRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to mark as read')
+      toast.error(error.response?.data?.message || 'Failed to mark notification as read')
     },
   })
 }
 
 // Analytics hooks
-export const useReadiness = () => {
-  return useQuery({
-    queryKey: ['analytics', 'readiness'],
-    queryFn: async () => {
-      const response = await api.getReadiness()
-      return response.data.data.readiness
-    },
-    staleTime: 1000 * 60 * 5,
-  })
-}
-
-export const useApplicationStats = () => {
-  return useQuery({
-    queryKey: ['analytics', 'applications'],
-    queryFn: async () => {
-      const response = await api.getApplicationStats()
-      return response.data.data.stats
-    },
-    staleTime: 1000 * 60 * 5,
-  })
-}
-
-export const useNewApplicationStats = () => {
-  return useQuery({
-    queryKey: ['analytics', 'applications', 'new'],
-    queryFn: async () => {
-      const response = await api.getNewApplicationStats()
-      return response.data.data.stats
-    },
-    staleTime: 1000 * 60 * 5,
-  })
-}
-
-export const useApplicationTrends = (months = 6) => {
-  return useQuery({
-    queryKey: ['analytics', 'applications', 'trends', months],
-    queryFn: async () => {
-      const response = await api.getApplicationTrends(months)
-      return response.data.data.trends
-    },
-    staleTime: 1000 * 60 * 10,
-  })
-}
-
-export const useWeeklyTrend = (weeks = 12) => {
-  return useQuery({
-    queryKey: ['analytics', 'trend', weeks],
-    queryFn: async () => {
-      const response = await api.getWeeklyTrend(weeks)
-      return response.data.data.trend
-    },
-    staleTime: 1000 * 60 * 10,
-  })
-}
-
-export const useHeatmap = (days = 84) => {
-  return useQuery({
-    queryKey: ['analytics', 'heatmap', days],
-    queryFn: async () => {
-      const response = await api.getHeatmap(days)
-      return response.data.data.heatmap
-    },
-    staleTime: 1000 * 60 * 10,
-  })
-}
-
 export const useAnalyticsOverview = () => {
   return useQuery({
     queryKey: ['analytics', 'overview'],
@@ -1886,14 +2060,69 @@ export const useAnalyticsOverview = () => {
   })
 }
 
+export const useReadiness = () => {
+  return useQuery({
+    queryKey: ['analytics', 'readiness'],
+    queryFn: async () => {
+      const response = await api.getReadiness()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+export const useReadinessBreakdown = () => {
+  return useQuery({
+    queryKey: ['analytics', 'readiness', 'breakdown'],
+    queryFn: async () => {
+      const response = await api.getReadinessBreakdown()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+export const useApplicationStats = () => {
+  return useQuery({
+    queryKey: ['analytics', 'applications'],
+    queryFn: async () => {
+      const response = await api.getApplicationStats()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+export const useNewApplicationStats = () => {
+  return useQuery({
+    queryKey: ['analytics', 'applications', 'new'],
+    queryFn: async () => {
+      const response = await api.getNewApplicationStats()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+export const useApplicationTrends = (months = 6) => {
+  return useQuery({
+    queryKey: ['analytics', 'applications', 'trends', months],
+    queryFn: async () => {
+      const response = await api.getApplicationTrends(months)
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
 export const useApplicationFunnel = () => {
   return useQuery({
     queryKey: ['analytics', 'applications', 'funnel'],
     queryFn: async () => {
       const response = await api.getApplicationFunnel()
-      return response.data.data.funnel
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -1902,9 +2131,9 @@ export const useApplicationSources = () => {
     queryKey: ['analytics', 'applications', 'sources'],
     queryFn: async () => {
       const response = await api.getApplicationSources()
-      return response.data.data.sources
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -1915,7 +2144,7 @@ export const useAverageResponseTime = () => {
       const response = await api.getAverageResponseTime()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -1924,9 +2153,9 @@ export const useStageDistribution = () => {
     queryKey: ['analytics', 'applications', 'stages'],
     queryFn: async () => {
       const response = await api.getStageDistribution()
-      return response.data.data.distribution
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -1935,9 +2164,9 @@ export const useTopRecruiters = () => {
     queryKey: ['analytics', 'applications', 'recruiters'],
     queryFn: async () => {
       const response = await api.getTopRecruiters()
-      return response.data.data.recruiters
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -1948,7 +2177,7 @@ export const useOfferConversion = () => {
       const response = await api.getOfferConversion()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -1957,20 +2186,9 @@ export const useCompanyAnalytics = () => {
     queryKey: ['analytics', 'companies'],
     queryFn: async () => {
       const response = await api.getCompanyAnalytics()
-      return response.data.data.analytics
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
-  })
-}
-
-export const useHiringTrends = (months = 6) => {
-  return useQuery({
-    queryKey: ['analytics', 'companies', 'hiring-trends', months],
-    queryFn: async () => {
-      const response = await api.getHiringTrends(months)
-      return response.data.data.trends
-    },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -1979,9 +2197,9 @@ export const useIndustryDistribution = () => {
     queryKey: ['analytics', 'companies', 'industry'],
     queryFn: async () => {
       const response = await api.getIndustryDistribution()
-      return response.data.data.distribution
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -1990,9 +2208,20 @@ export const useLocationDistribution = () => {
     queryKey: ['analytics', 'companies', 'location'],
     queryFn: async () => {
       const response = await api.getLocationDistribution()
-      return response.data.data.distribution
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+export const useHiringTrends = (months = 6) => {
+  return useQuery({
+    queryKey: ['analytics', 'companies', 'hiring-trends', months],
+    queryFn: async () => {
+      const response = await api.getHiringTrends(months)
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2001,9 +2230,9 @@ export const useTopCompanies = (limit = 10) => {
     queryKey: ['analytics', 'companies', 'top', limit],
     queryFn: async () => {
       const response = await api.getTopCompanies(limit)
-      return response.data.data.companies
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2012,9 +2241,9 @@ export const useEligibilityAnalysis = () => {
     queryKey: ['analytics', 'companies', 'eligibility'],
     queryFn: async () => {
       const response = await api.getEligibilityAnalysis()
-      return response.data.data.analysis
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2034,9 +2263,9 @@ export const useInterviewTrends = (months = 6) => {
     queryKey: ['analytics', 'interviews', 'trends', months],
     queryFn: async () => {
       const response = await api.getInterviewTrends(months)
-      return response.data.data.trends
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2045,9 +2274,9 @@ export const useInterviewTypeDistribution = () => {
     queryKey: ['analytics', 'interviews', 'types'],
     queryFn: async () => {
       const response = await api.getInterviewTypeDistribution()
-      return response.data.data.distribution
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2056,9 +2285,9 @@ export const useInterviewDifficultyTrends = () => {
     queryKey: ['analytics', 'interviews', 'difficulty'],
     queryFn: async () => {
       const response = await api.getInterviewDifficultyTrends()
-      return response.data.data.trends
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2069,7 +2298,7 @@ export const useInterviewAverageRating = () => {
       const response = await api.getInterviewAverageRating()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2078,9 +2307,9 @@ export const useUpcomingSchedule = () => {
     queryKey: ['analytics', 'interviews', 'schedule'],
     queryFn: async () => {
       const response = await api.getUpcomingSchedule()
-      return response.data.data.schedule
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
@@ -2089,9 +2318,9 @@ export const useCancelledInterviews = () => {
     queryKey: ['analytics', 'interviews', 'cancelled'],
     queryFn: async () => {
       const response = await api.getCancelledInterviews()
-      return response.data.data.interviews
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2111,9 +2340,9 @@ export const useDsaDifficultyBreakdown = () => {
     queryKey: ['analytics', 'dsa', 'difficulty'],
     queryFn: async () => {
       const response = await api.getDsaDifficultyBreakdown()
-      return response.data.data.breakdown
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2122,20 +2351,9 @@ export const useDsaTopicMastery = () => {
     queryKey: ['analytics', 'dsa', 'mastery'],
     queryFn: async () => {
       const response = await api.getDsaTopicMastery()
-      return response.data.data.mastery
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
-  })
-}
-
-export const useDsaTrends = (months = 6) => {
-  return useQuery({
-    queryKey: ['analytics', 'dsa', 'trends', months],
-    queryFn: async () => {
-      const response = await api.getDsaTrends(months)
-      return response.data.data.trends
-    },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2155,9 +2373,9 @@ export const useInsights = () => {
     queryKey: ['analytics', 'insights'],
     queryFn: async () => {
       const response = await api.getInsights()
-      return response.data.data.insights
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2166,9 +2384,9 @@ export const useRecommendations = () => {
     queryKey: ['analytics', 'recommendations'],
     queryFn: async () => {
       const response = await api.getRecommendations()
-      return response.data.data.recommendations
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2179,7 +2397,7 @@ export const useWeeklyReport = () => {
       const response = await api.getWeeklyReport()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2190,7 +2408,7 @@ export const useMonthlyReport = () => {
       const response = await api.getMonthlyReport()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2201,220 +2419,52 @@ export const usePlacementReport = () => {
       const response = await api.getPlacementReport()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
-  })
-}
-
-// User/Profile hooks
-export const useProfile = () => {
-  return useQuery({
-    queryKey: ['user', 'profile'],
-    queryFn: async () => {
-      const response = await api.getProfile()
-      return response.data.data.user
-    },
     staleTime: 1000 * 60 * 5,
   })
 }
 
-export const useUpdateProfile = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.updateProfile,
-    onSuccess: (response) => {
-      queryClient.setQueryData(['user', 'profile'], response.data.data.user)
-      toast.success('Profile updated')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to update profile')
-    },
-  })
-}
-
-export const useUpdateNotificationPreferences = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.updateNotificationPreferences,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['settings'] })
-      queryClient.invalidateQueries({ queryKey: ['user', 'profile'] })
-      toast.success('Notification preferences saved')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to save preferences')
-    },
-  })
-}
-
-export const useUpdateTheme = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.updateTheme,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['settings'] })
-      queryClient.invalidateQueries({ queryKey: ['user', 'profile'] })
-      toast.success('Theme updated')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to update theme')
-    },
-  })
-}
-
-export const useUpdateOnboarding = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.updateOnboarding,
-    onSuccess: (response) => {
-      queryClient.setQueryData(['user', 'profile'], response.data.data.user)
-      toast.success('Onboarding step saved')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to save onboarding')
-    },
-  })
-}
-
-export const useProfileSummary = () => {
+export const useWeeklyTrend = (weeks = 12) => {
   return useQuery({
-    queryKey: ['profile', 'summary'],
+    queryKey: ['analytics', 'trend', weeks],
     queryFn: async () => {
-      const response = await api.getProfileSummary()
+      const response = await api.getWeeklyTrend(weeks)
       return response.data.data
     },
     staleTime: 1000 * 60 * 5,
   })
 }
 
-export const useActivityTimeline = (limit = 50) => {
+export const useHeatmap = (days = 84) => {
   return useQuery({
-    queryKey: ['profile', 'activity', limit],
+    queryKey: ['analytics', 'heatmap', days],
     queryFn: async () => {
-      const response = await api.getActivityTimeline(limit)
-      return response.data.data.activities
+      const response = await api.getHeatmap(days)
+      return response.data.data
     },
     staleTime: 1000 * 60 * 5,
   })
 }
 
-export const useCheckAchievements = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.checkAchievements,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', 'achievements'] })
-      toast.success('Achievements checked')
+export const useStreak = () => {
+  return useQuery({
+    queryKey: ['analytics', 'streak'],
+    queryFn: async () => {
+      const response = await api.getStreak()
+      return response.data.data
     },
+    staleTime: 1000 * 60 * 2,
   })
 }
 
-export const useProfileAchievements = () => {
+// Achievements hooks
+export const useAchievements = () => {
   return useQuery({
-    queryKey: ['profile', 'achievements'],
+    queryKey: ['achievements'],
     queryFn: async () => {
-      const response = await api.getProfileAchievements()
+      const response = await api.getAchievements()
       return response.data.data.achievements
     },
-    staleTime: 1000 * 60 * 10,
-  })
-}
-
-export const useDocuments = () => {
-  return useQuery({
-    queryKey: ['profile', 'documents'],
-    queryFn: async () => {
-      const response = await api.getDocuments()
-      return response.data.data.documents
-    },
     staleTime: 1000 * 60 * 5,
-  })
-}
-
-export const useCreateDocument = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.createDocument,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', 'documents'] })
-      toast.success('Document uploaded')
-    },
-  })
-}
-
-export const useUpdateDocument = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, data }) => api.updateDocument(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', 'documents'] })
-      toast.success('Document updated')
-    },
-  })
-}
-
-export const useDeleteDocument = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.deleteDocument,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', 'documents'] })
-      toast.success('Document deleted')
-    },
-  })
-}
-
-export const useArchiveDocument = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, archived }) => api.archiveDocument(id, archived),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', 'documents'] })
-      toast.success(archived ? 'Document archived' : 'Document restored')
-    },
-  })
-}
-
-export const useSkills = (category) => {
-  return useQuery({
-    queryKey: ['profile', 'skills', category],
-    queryFn: async () => {
-      const response = await api.getSkills(category)
-      return response.data.data.skills
-    },
-    staleTime: 1000 * 60 * 5,
-  })
-}
-
-export const useCreateSkill = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.createSkill,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', 'skills'] })
-      toast.success('Skill added')
-    },
-  })
-}
-
-export const useUpdateSkill = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, data }) => api.updateSkill(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', 'skills'] })
-      toast.success('Skill updated')
-    },
-  })
-}
-
-export const useDeleteSkill = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.deleteSkill,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile', 'skills'] })
-      toast.success('Skill removed')
-    },
   })
 }
 
@@ -2436,47 +2486,10 @@ export const useUpdateSettings = () => {
     mutationFn: api.updateSettings,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
-      toast.success('Settings saved')
+      toast.success('Settings updated')
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to save settings')
-    },
-  })
-}
-
-export const useExportData = () => {
-  return useMutation({
-    mutationFn: api.exportData,
-    onSuccess: (response) => {
-      const json = JSON.stringify(response.data.data, null, 2)
-      const blob = new Blob([json], { type: 'application/json' })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `placementpilot-export-${Date.now()}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
-      toast.success('Export downloaded')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Export failed')
-    },
-  })
-}
-
-export const useDeleteAccount = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.deleteAccount,
-    onSuccess: () => {
-      localStorage.removeItem('accessToken')
-      queryClient.clear()
-      toast.success('Account deleted')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to delete account')
+      toast.error(error.response?.data?.message || 'Failed to update settings')
     },
   })
 }
@@ -2498,9 +2511,9 @@ export const useSessions = () => {
     queryKey: ['settings', 'sessions'],
     queryFn: async () => {
       const response = await api.getSessions()
-      return response.data.data.sessions
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
@@ -2510,7 +2523,25 @@ export const useRevokeSessions = () => {
     mutationFn: api.revokeSessions,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings', 'sessions'] })
-      toast.success('All other sessions revoked')
+      toast.success('Sessions revoked')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to revoke sessions')
+    },
+  })
+}
+
+export const useDeleteAccount = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.deleteAccount,
+    onSuccess: () => {
+      queryClient.clear()
+      localStorage.removeItem('accessToken')
+      toast.success('Account scheduled for deletion')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to delete account')
     },
   })
 }
@@ -2523,6 +2554,23 @@ export const useUpdateAppearance = () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
       toast.success('Appearance updated')
     },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update appearance')
+    },
+  })
+}
+
+export const useUpdateNotifications = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.updateNotifications,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+      toast.success('Notification preferences updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update notification preferences')
+    },
   })
 }
 
@@ -2533,6 +2581,9 @@ export const useUpdatePrivacy = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
       toast.success('Privacy settings updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update privacy settings')
     },
   })
 }
@@ -2545,6 +2596,31 @@ export const useUpdateSecurity = () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
       toast.success('Security settings updated')
     },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update security settings')
+    },
+  })
+}
+
+export const useLoginHistory = () => {
+  return useQuery({
+    queryKey: ['settings', 'login-history'],
+    queryFn: async () => {
+      const response = await api.getLoginHistory()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const useSecurityLog = () => {
+  return useQuery({
+    queryKey: ['settings', 'security-log'],
+    queryFn: async () => {
+      const response = await api.getSecurityLog()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 2,
   })
 }
 
@@ -2556,6 +2632,9 @@ export const useUpdateProductivity = () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
       toast.success('Productivity settings updated')
     },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update productivity settings')
+    },
   })
 }
 
@@ -2564,9 +2643,9 @@ export const useIntegrations = () => {
     queryKey: ['settings', 'integrations'],
     queryFn: async () => {
       const response = await api.getIntegrations()
-      return response.data.data.integrations
+      return response.data.data
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -2577,6 +2656,9 @@ export const useUpdateIntegration = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings', 'integrations'] })
       toast.success('Integration updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update integration')
     },
   })
 }
@@ -2589,6 +2671,21 @@ export const useDisconnectIntegration = () => {
       queryClient.invalidateQueries({ queryKey: ['settings', 'integrations'] })
       toast.success('Integration disconnected')
     },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to disconnect integration')
+    },
+  })
+}
+
+export const useExportData = () => {
+  return useMutation({
+    mutationFn: api.exportData,
+    onSuccess: () => {
+      toast.success('Data export initiated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to export data')
+    },
   })
 }
 
@@ -2600,6 +2697,9 @@ export const useClearCache = () => {
       queryClient.clear()
       toast.success('Cache cleared')
     },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to clear cache')
+    },
   })
 }
 
@@ -2609,28 +2709,34 @@ export const useResetPreferences = () => {
     mutationFn: api.resetPreferences,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
-      toast.success('Preferences reset to defaults')
+      toast.success('Preferences reset')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to reset preferences')
     },
   })
 }
 
 export const useDeleteArchivedData = () => {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: api.deleteArchivedData,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
       toast.success('Archived data deleted')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to delete archived data')
     },
   })
 }
 
 // Waitlist hooks
 export const useJoinWaitlist = () => {
-  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: api.joinWaitlist,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['waitlist'] })
-      toast.success('You are on the list. We will notify you when Pro opens.')
+      toast.success('Joined waitlist')
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to join waitlist')
@@ -2643,7 +2749,7 @@ export const useWaitlistStats = () => {
     queryKey: ['waitlist', 'stats'],
     queryFn: async () => {
       const response = await api.getWaitlistStats()
-      return response.data.data.count
+      return response.data.data
     },
     staleTime: 1000 * 60 * 5,
   })
