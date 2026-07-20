@@ -66,6 +66,8 @@ export function ConsistencyHeatmap({ data, cols = 14 }) {
     return 'bg-brand'
   }
 
+  const safeData = Array.isArray(data) ? data : []
+
   return (
     <div className="space-y-1 w-full overflow-x-auto">
       <div
@@ -74,7 +76,7 @@ export function ConsistencyHeatmap({ data, cols = 14 }) {
         role="img"
         aria-label="Consistency heatmap showing activity over 12 weeks"
       >
-        {data.map((v, i) => (
+        {safeData.map((v, i) => (
           <motion.div
             key={i}
             className={cn('aspect-square rounded-[3px]', shade(v))}
@@ -133,9 +135,10 @@ export function TrajectoryRow({ code, progress, stage, tone = 'brand' }) {
 export function Spark({ values, className }) {
   const w = 120
   const h = 32
-  const max = Math.max(...values, 1)
-  const step = w / (values.length - 1 || 1)
-  const d = values
+  const safeValues = Array.isArray(values) ? values : []
+  const max = Math.max(...safeValues, 1)
+  const step = w / (safeValues.length - 1 || 1)
+  const d = safeValues
     .map((v, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(h - (v / max) * h).toFixed(1)}`)
     .join(' ')
 
@@ -152,9 +155,10 @@ export function Spark({ values, className }) {
 
 /** Readiness breakdown bars */
 export function ReadinessBars({ items }) {
+  const safeItems = Array.isArray(items) ? items : []
   return (
     <div className="space-y-4" role="list" aria-label="Readiness breakdown">
-      {items.map((it) => (
+      {safeItems.map((it) => (
         <div key={it.label} role="listitem">
           <div className="flex items-center justify-between text-xs mb-2">
             <span className="text-ink-2">{it.label}</span>

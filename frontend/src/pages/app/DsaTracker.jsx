@@ -145,8 +145,8 @@ function DashboardTab() {
         <Card>
           <Eyebrow className="mb-4">Weak topics</Eyebrow>
           <div className="space-y-3">
-            {weakTopics?.length === 0 && <EmptyState icon="🎯" title="No weak topics" description="Keep practicing to identify areas for improvement." />}
-            {weakTopics?.map((t) => (
+            {!weakTopics?.length && <EmptyState icon="🎯" title="No weak topics" description="Keep practicing to identify areas for improvement." />}
+            {Array.isArray(weakTopics) && weakTopics.map((t) => (
               <div key={t.topic} className="flex items-center justify-between">
                 <div>
                   <div className="text-sm font-medium text-ink">{t.topic}</div>
@@ -312,7 +312,7 @@ function ProblemsTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-hairline">
-                {problemsData?.problems?.map((p) => (
+                {Array.isArray(problemsData?.problems) && problemsData.problems.map((p) => (
                   <tr key={p._id} className="hover:bg-surface-2 transition">
                     <td className="p-3">
                       <input
@@ -413,7 +413,7 @@ function SessionsTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-hairline">
-                {sessionsData?.sessions?.map((s) => (
+                {Array.isArray(sessionsData?.sessions) && sessionsData.sessions.map((s) => (
                   <tr key={s._id} className="hover:bg-surface-2 transition">
                     <td className="p-3 font-medium text-ink">{s.title || 'Untitled'}</td>
                     <td className="p-3 text-ink-2">{new Date(s.startTime).toLocaleString()}</td>
@@ -499,7 +499,7 @@ function RoadmapsTab() {
 
       <motion.div variants={staggerItem}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {roadmaps?.map((r) => (
+          {(Array.isArray(roadmaps) ? roadmaps : []).map((r) => (
             <Card key={r._id}>
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -531,7 +531,10 @@ function RevisionsTab() {
   const skipMutation = useSkipDsaRevision()
 
   const revisions = useMemo(() => {
-    const all = [...(dailyRevisions || [])]
+    const dailyList = Array.isArray(dailyRevisions)
+      ? dailyRevisions
+      : (dailyRevisions?.revisions || dailyRevisions?.data || [])
+    const all = [...dailyList]
     missedRevisions?.forEach((r) => {
       if (!all.find((x) => x._id === r._id)) all.push(r)
     })
@@ -605,9 +608,9 @@ function AnalyticsTab() {
         <motion.div variants={staggerItem}>
           <Card>
             <Eyebrow className="mb-4">Weak topics</Eyebrow>
-            <div className="space-y-3">
-              {weakTopics?.length === 0 && <EmptyState icon="📉" title="No weak topics" description="Keep practicing." />}
-              {weakTopics?.map((t) => (
+          <div className="space-y-3">
+            {!weakTopics?.length && <EmptyState icon="📉" title="No weak topics" description="Keep practicing." />}
+            {Array.isArray(weakTopics) && weakTopics.map((t) => (
                 <div key={t.topic} className="flex items-center justify-between">
                   <div className="text-sm text-ink">{t.topic}</div>
                   <div className="text-sm font-mono text-ink-2">{t.mastery}%</div>
@@ -620,9 +623,9 @@ function AnalyticsTab() {
         <motion.div variants={staggerItem}>
           <Card>
             <Eyebrow className="mb-4">Strong topics</Eyebrow>
-            <div className="space-y-3">
-              {strongTopics?.length === 0 && <EmptyState icon="📈" title="No strong topics yet" description="Solve more problems to build strength." />}
-              {strongTopics?.map((t) => (
+          <div className="space-y-3">
+            {!strongTopics?.length && <EmptyState icon="📈" title="No strong topics yet" description="Solve more problems to build strength." />}
+            {Array.isArray(strongTopics) && strongTopics.map((t) => (
                 <div key={t.topic} className="flex items-center justify-between">
                   <div className="text-sm text-ink">{t.topic}</div>
                   <div className="text-sm font-mono text-ink-2">{t.mastery}%</div>
@@ -634,10 +637,10 @@ function AnalyticsTab() {
       </div>
 
       <motion.div variants={staggerItem}>
-        <Card>
-          <Eyebrow className="mb-4">Monthly trends</Eyebrow>
-          <div className="space-y-3">
-            {insights?.monthlyTrends?.map((t) => (
+          <Card>
+            <Eyebrow className="mb-4">Monthly trends</Eyebrow>
+            <div className="space-y-3">
+              {(Array.isArray(insights?.monthlyTrends) ? insights.monthlyTrends : []).map((t) => (
               <div key={t.month} className="flex items-center justify-between">
                 <span className="text-sm text-ink-2 w-24">{t.month}</span>
                 <div className="flex-1 mx-4">

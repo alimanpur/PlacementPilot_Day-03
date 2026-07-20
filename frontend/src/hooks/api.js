@@ -1388,7 +1388,9 @@ export const useDsaHeatmap = (days = 84) => {
     queryKey: ['dsa', 'heatmap', days],
     queryFn: async () => {
       const response = await api.getDsaHeatmap(days)
-      return response.data.data
+      const raw = response.data.data
+      // Normalize: API may return { heatmap: [...] } or [...] directly
+      return Array.isArray(raw) ? raw : (raw?.heatmap || raw?.data || [])
     },
     staleTime: 1000 * 60 * 5,
   })
