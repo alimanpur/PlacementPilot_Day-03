@@ -18,30 +18,43 @@ export class AchievementRepository {
   }
 
   async updateProgress(userId, id, current) {
-    return Achievement.findOneAndUpdate(
-      { _id: id, userId, deletedAt: null },
-      { 
-        $set: { 'criteria.current': current },
-        $set: { progress: Math.min(100, Math.round((current / (this._getTarget(id) || 1)) * 100)) }
+    const achievement = await Achievement.findOne({ _id: id, userId, deletedAt: null })
+    if (!achievement) return null
+    const target = achievement.criteria?.target || 1
+    const progress = Math.min(100, Math.round((current / target) * 100))
+    return Achievement.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          'criteria.current': current,
+          progress,
+        },
       },
       { new: true, runValidators: true }
     )
   }
 
   async unlock(userId, id) {
-    return Achievement.findOneAndUpdate(
-      { _id: id, userId, deletedAt: null },
-      { 
+    const achievement = await Achievement.findOne({ _id: id, userId, deletedAt: null })
+    if (!achievement) return null
+    const target = achievement.criteria?.target || 1
+    return Achievement.findByIdAndUpdate(
+      id,
+      {
         unlockedAt: new Date(),
         progress: 100,
-        'criteria.current': '$criteria.target'
+        'criteria.current': target,
       },
       { new: true, runValidators: true }
     )
   }
 
   async delete(userId, id) {
-    return Achievement.findByIdAndUpdate(id, { deletedAt: new Date() })
+    return Achievement.findOneAndUpdate(
+      { _id: id, userId, deletedAt: null },
+      { deletedAt: new Date() },
+      { new: true },
+    )
   }
 
   _getTarget(id) {

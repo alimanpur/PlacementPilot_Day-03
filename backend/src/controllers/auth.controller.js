@@ -35,11 +35,9 @@ export const login = asyncWrapper(async (req, res) => {
     req.body.password,
   )
 
-  // CRITICAL AUTH FIX: Clear any stale cookies first to prevent old refresh
-  // tokens from being used after switching accounts on the same browser.
   res
-    .clearCookie('accessToken', { path: '/' })
-    .clearCookie('refreshToken', { path: '/' })
+    .clearCookie('accessToken', cookieOptions(0))
+    .clearCookie('refreshToken', cookieOptions(0))
     .cookie('accessToken', accessToken, cookieOptions(15 * 60 * 1000))
     .cookie('refreshToken', refreshToken, cookieOptions(7 * 24 * 60 * 60 * 1000))
     .json({
@@ -90,8 +88,8 @@ export const refresh = asyncWrapper(async (req, res) => {
 export const logout = asyncWrapper(async (req, res) => {
   await authService.logout(req.user._id)
   res
-    .clearCookie('accessToken', { path: '/' })
-    .clearCookie('refreshToken', { path: '/' })
+    .clearCookie('accessToken', cookieOptions(0))
+    .clearCookie('refreshToken', cookieOptions(0))
     .json({
       success: true,
       message: 'Logged out successfully',

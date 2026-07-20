@@ -20,7 +20,7 @@ export class NotificationRepository {
 
   async markRead(userId, id) {
     return Notification.findOneAndUpdate(
-      { _id: id, userId },
+      { _id: id, userId, deletedAt: null },
       { read: true, readAt: new Date() },
       { new: true },
     )
@@ -28,13 +28,17 @@ export class NotificationRepository {
 
   async markAllRead(userId) {
     return Notification.updateMany(
-      { userId, read: false },
+      { userId, read: false, deletedAt: null },
       { read: true, readAt: new Date() },
     )
   }
 
   async delete(userId, id) {
-    return Notification.findByIdAndUpdate(id, { deletedAt: new Date() })
+    return Notification.findOneAndUpdate(
+      { _id: id, userId, deletedAt: null },
+      { deletedAt: new Date() },
+      { new: true },
+    )
   }
 
   async findRecent(userId, limit = 10) {

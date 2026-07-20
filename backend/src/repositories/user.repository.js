@@ -10,39 +10,49 @@ export class UserRepository {
   }
 
   async findByEmail(email) {
-    return User.findOne({ email }).select('+password')
+    return User.findOne({ email, deletedAt: null }).select('+password')
   }
 
   async findByRefreshToken(refreshToken) {
-    return User.findOne({ refreshToken })
+    return User.findOne({ refreshToken, deletedAt: null })
   }
 
   async findByUsername(username) {
-    return User.findOne({ username })
+    return User.findOne({ username, deletedAt: null })
   }
 
   async update(id, data) {
-    return User.findByIdAndUpdate(id, data, { new: true, runValidators: true })
+    return User.findOneAndUpdate(
+      { _id: id, deletedAt: null },
+      data,
+      { new: true, runValidators: true },
+    )
   }
 
   async updateRefreshToken(id, token, expires) {
-    return User.findByIdAndUpdate(id, {
-      refreshToken: token,
-      refreshTokenExpires: expires,
-    })
+    return User.findOneAndUpdate(
+      { _id: id, deletedAt: null },
+      {
+        refreshToken: token,
+        refreshTokenExpires: expires,
+      },
+    )
   }
 
   async updatePassword(id, hashedPassword) {
-    return User.findByIdAndUpdate(id, {
-      password: hashedPassword,
-      passwordResetToken: null,
-      passwordResetExpires: null,
-    })
+    return User.findOneAndUpdate(
+      { _id: id, deletedAt: null },
+      {
+        password: hashedPassword,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      },
+    )
   }
 
   async setResetToken(email, token, expires) {
     return User.findOneAndUpdate(
-      { email },
+      { email, deletedAt: null },
       {
         passwordResetToken: token,
         passwordResetExpires: expires,
@@ -54,11 +64,16 @@ export class UserRepository {
     return User.findOne({
       passwordResetToken: token,
       passwordResetExpires: { $gt: new Date() },
+      deletedAt: null,
     })
   }
 
   async delete(id) {
-    return User.findByIdAndUpdate(id, { deletedAt: new Date() })
+    return User.findOneAndUpdate(
+      { _id: id, deletedAt: null },
+      { deletedAt: new Date() },
+      { new: true },
+    )
   }
 
   async hardDelete(id) {
@@ -66,7 +81,11 @@ export class UserRepository {
   }
 
   async restore(id) {
-    return User.findByIdAndUpdate(id, { deletedAt: null })
+    return User.findOneAndUpdate(
+      { _id: id, deletedAt: { $ne: null } },
+      { deletedAt: null },
+      { new: true },
+    )
   }
 
   async getOnboardingStatus(id) {
@@ -82,8 +101,8 @@ export class UserRepository {
 
   async updateOnboarding(id, steps) {
     const allComplete = Object.values(steps).every(Boolean)
-    return User.findByIdAndUpdate(
-      id,
+    return User.findOneAndUpdate(
+      { _id: id, deletedAt: null },
       {
         'onboarding.steps': steps,
         'onboarding.completed': allComplete,

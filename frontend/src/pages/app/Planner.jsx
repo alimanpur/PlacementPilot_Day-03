@@ -56,6 +56,7 @@ function PriorityDot({ priority }) {
 
 export default function Planner() {
   const [activeTab, setActiveTab] = useState('today')
+  const generateSmartTasksMutation = useGenerateSmartTasks()
 
   return (
     <PageTransition>
@@ -66,7 +67,7 @@ export default function Planner() {
           meta="Your personal placement operating system."
           action={
             <div className="flex gap-2">
-              <Button variant="secondary" size="sm" onClick={() => useGenerateSmartTasks().mutate()}>
+              <Button variant="secondary" size="sm" onClick={() => generateSmartTasksMutation.mutate()}>
                 Sync All
               </Button>
               <Button variant="primary" size="sm" onClick={() => setActiveTab('tasks')}>
@@ -195,6 +196,7 @@ function TasksTab() {
   const { data: tasksData } = usePlannerTasks(filters)
   const createMutation = useCreatePlannerTask()
   const bulkMutation = useBulkUpdatePlannerTasks()
+  const markCompleteMutation = useMarkPlannerTaskComplete()
 
   const handleCreate = (e) => {
     e.preventDefault()
@@ -347,7 +349,7 @@ function TasksTab() {
                       </StatusPill>
                     </td>
                     <td className="p-3 text-right">
-                      <Button variant="secondary" size="sm" onClick={() => useMarkPlannerTaskComplete().mutate(task._id)} loading={useMarkPlannerTaskComplete().isPending}>
+                      <Button variant="secondary" size="sm" onClick={() => markCompleteMutation.mutate(task._id)} loading={markCompleteMutation.isPending}>
                         Done
                       </Button>
                     </td>

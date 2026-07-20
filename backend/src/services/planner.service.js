@@ -6,6 +6,7 @@ import { DSARevision, DSAProblem, DSATopic } from '../models/dsa.model.js'
 import { Goal } from '../models/goal.model.js'
 import { NotificationService } from './notification.service.js'
 import { AnalyticsService } from './analytics.service.js'
+import { PlannerTask } from '../models/planner.model.js'
 
 export class PlannerService {
   constructor() {

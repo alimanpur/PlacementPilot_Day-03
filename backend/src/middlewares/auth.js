@@ -5,21 +5,16 @@ import { User } from '../models/user.model.js'
 
 export const authenticate = async (req, res, next) => {
   try {
-    console.log('AUTHENTICATE MIDDLEWARE CALLED');
-    console.log('Auth header:', req.headers.authorization);
-    console.log('Cookies:', req.cookies);
     const authHeader = req.headers.authorization;
     let token = null;
     if (authHeader) {
       const parts = authHeader.split(' ');
-      console.log('Auth header parts:', parts);
       if (parts.length === 2) {
         token = parts[1];
       }
     } else {
       token = req.cookies?.accessToken;
     }
-    console.log('Token extracted:', token ? `'${token}'` : 'missing');
     if (!token) {
       return res.status(401).json({
         success: false,
