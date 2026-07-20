@@ -1563,6 +1563,9 @@ export const useDsaDailyRevisionQueue = () => {
   })
 }
 
+// Alias for DsaTracker.jsx compatibility — both names resolve to the same hook
+export const useDsaDailyRevisions = useDsaDailyRevisionQueue
+
 export const useDsaWeeklyRevisionQueue = () => {
   return useQuery({
     queryKey: ['dsa', 'revisions', 'weekly'],
