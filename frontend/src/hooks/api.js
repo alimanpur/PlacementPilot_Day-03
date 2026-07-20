@@ -85,6 +85,19 @@ export const useResetPassword = () => {
   })
 }
 
+// Profile hook — used by AppShell and MobileSidebar to display user name/email
+export const useProfile = () => {
+  return useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const response = await api.getProfile()
+      return response.data.data.user
+    },
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+  })
+}
+
 // Dashboard hooks
 export const useDashboard = () => {
   return useQuery({
