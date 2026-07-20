@@ -99,23 +99,39 @@ export const dsaBulkActionSchema = z.object({
 
 export const dsaSearchSchema = z.object({
   search: z.string().optional(),
-  difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+  difficulty: z.enum(['easy', 'medium', 'hard']).optional().or(z.literal('')),
   topic: z.string().optional(),
-  status: z.enum(['not_started', 'started', 'solved', 'reviewed', 'mastered']).optional(),
-  platform: z.enum(['leetcode', 'hackerrank', 'codeforces', 'codechef', 'atcoder', 'gfg', 'other']).optional(),
+  status: z.enum(['not_started', 'started', 'solved', 'reviewed', 'mastered']).optional().or(z.literal('')),
+  platform: z.enum(['leetcode', 'hackerrank', 'codeforces', 'codechef', 'atcoder', 'gfg', 'other']).optional().or(z.literal('')),
   pattern: z.string().optional(),
   company: z.string().optional(),
-  bookmarked: z.boolean().optional(),
-  favorite: z.boolean().optional(),
-  starred: z.boolean().optional(),
-  revisionDue: z.boolean().optional(),
+  bookmarked: z.preprocess((val) => {
+    if (val === 'true') return true
+    if (val === 'false') return false
+    return val
+  }, z.boolean().optional()),
+  favorite: z.preprocess((val) => {
+    if (val === 'true') return true
+    if (val === 'false') return false
+    return val
+  }, z.boolean().optional()),
+  starred: z.preprocess((val) => {
+    if (val === 'true') return true
+    if (val === 'false') return false
+    return val
+  }, z.boolean().optional()),
+  revisionDue: z.preprocess((val) => {
+    if (val === 'true') return true
+    if (val === 'false') return false
+    return val
+  }, z.boolean().optional()),
   tags: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
   sortBy: z.string().optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional().or(z.literal('')),
 })
 
 export const dsaIdSchema = z.object({

@@ -80,18 +80,22 @@ export const plannerGoalSchema = z.object({
 
 export const plannerSearchSchema = z.object({
   search: z.string().optional(),
-  status: z.enum(['pending', 'in_progress', 'completed', 'cancelled', 'overdue']).optional(),
-  category: z.enum(['placement', 'interview_prep', 'dsa', 'projects', 'resume', 'applications', 'mock_interview', 'revision', 'personal', 'custom']).optional(),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
-  linkedModule: z.enum(['interview', 'application', 'company', 'dsa', 'goal', 'habit', 'none']).optional(),
+  status: z.enum(['pending', 'in_progress', 'completed', 'cancelled', 'overdue']).optional().or(z.literal('')),
+  category: z.enum(['placement', 'interview_prep', 'dsa', 'projects', 'resume', 'applications', 'mock_interview', 'revision', 'personal', 'custom']).optional().or(z.literal('')),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional().or(z.literal('')),
+  linkedModule: z.enum(['interview', 'application', 'company', 'dsa', 'goal', 'habit', 'none']).optional().or(z.literal('')),
   tags: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  overdue: z.boolean().optional(),
+  overdue: z.preprocess((val) => {
+    if (val === 'true') return true
+    if (val === 'false') return false
+    return val
+  }, z.boolean().optional()),
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
   sortBy: z.string().optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional().or(z.literal('')),
 })
 
 export const plannerIdSchema = z.object({

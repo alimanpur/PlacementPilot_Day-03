@@ -2000,7 +2000,7 @@ export const useSmartTasks = () => {
     queryKey: ['planner', 'smart-tasks'],
     queryFn: async () => {
       const response = await api.getSmartTasks()
-      return response.data.data
+      return response.data.data?.tasks || []
     },
     staleTime: 1000 * 60 * 2,
   })
