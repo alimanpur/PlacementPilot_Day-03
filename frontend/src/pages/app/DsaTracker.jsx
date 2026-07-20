@@ -114,7 +114,7 @@ function DashboardTab() {
   const { data: streakData } = useDsaStreak()
   const { data: weakTopics } = useDsaWeakTopics(3)
 
-  const streak = streakData?.streak || streakData || 0
+    const streak = streakData?.streak || 0
   const totalSolved = stats?.totalSolved || 0
   const weeklySolved = stats?.weeklySolved || 0
 
