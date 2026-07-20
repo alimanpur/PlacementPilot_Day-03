@@ -111,9 +111,10 @@ export default function DsaTracker() {
 function DashboardTab() {
   const { data: stats } = useDsaDashboardStats()
   const { data: heatmap } = useDsaHeatmap(84)
-  const { data: streak } = useDsaStreak()
+  const { data: streakData } = useDsaStreak()
   const { data: weakTopics } = useDsaWeakTopics(3)
 
+  const streak = streakData?.streak || streakData || 0
   const totalSolved = stats?.totalSolved || 0
   const weeklySolved = stats?.weeklySolved || 0
 
