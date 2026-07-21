@@ -1231,6 +1231,48 @@ export const useBulkActionInterviews = () => {
   })
 }
 
+export const useAddChecklistItem = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.addChecklistItem(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
+      toast.success('Checklist item added')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to add checklist item')
+    },
+  })
+}
+
+export const useToggleChecklistItem = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.toggleChecklistItem(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
+      toast.success('Checklist item updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to toggle checklist item')
+    },
+  })
+}
+
+export const useRemoveChecklistItem = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, itemId }) => api.removeChecklistItem(id, itemId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
+      toast.success('Checklist item removed')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to remove checklist item')
+    },
+  })
+}
+
 // DSA hooks
 export const useDsaTopics = () => {
   return useQuery({
@@ -2069,7 +2111,7 @@ export const useSmartTasks = () => {
     queryKey: ['planner', 'smart-tasks'],
     queryFn: async () => {
       const response = await api.getSmartTasks()
-      return response.data.data
+      return response.data.data?.tasks || []
     },
     staleTime: 1000 * 60 * 2,
   })
@@ -2094,7 +2136,7 @@ export const usePlannerHabits = () => {
     queryKey: ['planner', 'habits'],
     queryFn: async () => {
       const response = await api.getPlannerHabits()
-      return response.data.data
+      return response.data.data?.habits || []
     },
     staleTime: 1000 * 60 * 2,
   })
@@ -2173,7 +2215,7 @@ export const usePlannerGoals = () => {
     queryKey: ['planner', 'goals'],
     queryFn: async () => {
       const response = await api.getPlannerGoals()
-      return response.data.data
+      return response.data.data?.goals || []
     },
     staleTime: 1000 * 60 * 2,
   })
