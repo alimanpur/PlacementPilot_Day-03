@@ -53,7 +53,7 @@ export async function safePromise(promise, fallback, context = 'safePromise') {
  * falls back to `defaults[key]` so the response shape stays identical.
  */
 export async function resolveWidgets(tasks, defaults = {}, context = 'resolveWidgets') {
-  const entries = await Promise.all(
+  const entries = await Promise.allSettled(
     tasks.map(async ([key, promise]) => {
       try {
         const value = await promise
@@ -66,5 +66,18 @@ export async function resolveWidgets(tasks, defaults = {}, context = 'resolveWid
       }
     }),
   )
-  return Object.fromEntries(entries)
+  
+  return Object.fromEntries(
+    entries.map((entry) => {
+      if (entry.status === 'fulfilled') {
+        return entry.value
+      }
+      // If the promise itself rejected (shouldn't happen with try-catch, but safety net)
+      const [key] = tasks[entries.indexOf(entry)] || ['unknown', Promise.resolve()]
+      if (typeof console !== 'undefined' && console.error) {
+        console.error(`[${context}] widget "${key}" promise rejected:`, entry.reason)
+      }
+      return [key, defaults[key]]
+    })
+  )
 }

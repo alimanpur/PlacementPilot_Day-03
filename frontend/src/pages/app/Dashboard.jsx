@@ -25,9 +25,25 @@ import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 
 export default function Dashboard() {
-  const { data, isLoading, error, refetch } = useDashboard()
-  const { data: activity } = useDashboardActivity(10)
-  const { data: quickActions } = useDashboardQuickActions()
+  // Widget-level data fetching - each widget is independent
+  // If one fails, the rest still render
+  const { 
+    data: overviewData, 
+    isLoading: overviewLoading, 
+    error: overviewError 
+  } = useDashboard()
+  
+  const { 
+    data: activity, 
+    isLoading: activityLoading, 
+    error: activityError 
+  } = useDashboardActivity(10)
+  
+  const { 
+    data: quickActions, 
+    isLoading: quickActionsLoading, 
+    error: quickActionsError 
+  } = useDashboardQuickActions()
   
   const { data: dsaTopics } = useDsaTopics()
   const { data: goals } = useGoals()
@@ -45,7 +61,7 @@ export default function Dashboard() {
     user,
     streak,
     heatmap,
-  } = data || {}
+  } = overviewData || {}
   
   const upcomingInterviews = dashboardInterviews?.filter((i) => i.status === 'upcoming') || []
 
@@ -116,7 +132,8 @@ export default function Dashboard() {
     return descriptions[stepKey] || ''
   }
 
-  if (isLoading) {
+  // Show loading state only for the overview widget
+  if (overviewLoading) {
     return (
       <PageTransition>
         <AppShell>
@@ -131,22 +148,15 @@ export default function Dashboard() {
     )
   }
 
-  if (error) {
-    return (
-      <PageTransition>
-        <AppShell>
-          <PageHeader eyebrow="Command deck" title="Error" />
-          <PageBody>
-            <div className="text-center py-12 space-y-4">
-              <p className="text-ink-3">Failed to load dashboard data.</p>
-              <Button variant="secondary" size="sm" onClick={() => refetch()}>
-                Retry
-              </Button>
-            </div>
-          </PageBody>
-        </AppShell>
-      </PageTransition>
-    )
+  // Log errors for debugging but don't block rendering
+  if (overviewError) {
+    console.error('[Dashboard] Overview widget failed:', overviewError)
+  }
+  if (activityError) {
+    console.error('[Dashboard] Activity widget failed:', activityError)
+  }
+  if (quickActionsError) {
+    console.error('[Dashboard] QuickActions widget failed:', quickActionsError)
   }
 
   if (isNewUser && onboardingProgress.completed < onboardingProgress.total) {

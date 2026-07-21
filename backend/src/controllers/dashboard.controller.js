@@ -51,7 +51,7 @@ const DASHBOARD_DEFAULTS = {
  * is always preferable to a blank page.
  */
 function safeDashboardHandler(handler, endpoint) {
-  return asyncWrapper(async (req, res) => {
+  return async (req, res) => {
     try {
       return await handler(req, res)
     } catch (error) {
@@ -68,7 +68,7 @@ function safeDashboardHandler(handler, endpoint) {
         data: emptyDashboardData(),
       })
     }
-  })
+  }
 }
 
 function emptyDashboardData() {
@@ -99,8 +99,11 @@ export const getDashboardOverview = safeDashboardHandler(async (req, res) => {
   const cacheKey = `${userId}:overview`
   const cached = overviewCache.get(cacheKey)
   if (cached && Date.now() - cached.ts < 5000) {
+    logger.info('[Dashboard] overview cache hit', { userId: userId.toString() })
     return res.json(cached.payload)
   }
+  
+  logger.info('[Dashboard] overview request', { userId: userId.toString() })
 
   // Each widget is resolved independently. If one widget throws (e.g. a missing
   // index, a repository returning undefined), only that widget falls back to its
@@ -222,6 +225,11 @@ export const getDashboardOverview = safeDashboardHandler(async (req, res) => {
   }
 
   overviewCache.set(cacheKey, { ts: Date.now(), payload })
+  logger.info('[Dashboard] overview response', { 
+    userId: userId.toString(), 
+    status: 200,
+    hasData: !!payload.data 
+  })
   res.json(payload)
 })
 
@@ -229,6 +237,8 @@ export const getDashboardOverview = safeDashboardHandler(async (req, res) => {
 export const getDashboardActivity = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
   const limit = parseInt(req.query.limit) || 20
+  
+  logger.info('[Dashboard] activity request', { userId: userId.toString(), limit })
 
   const widgets = await resolveWidgets(
     [
@@ -252,6 +262,11 @@ export const getDashboardActivity = safeDashboardHandler(async (req, res) => {
     limit
   )
 
+  logger.info('[Dashboard] activity response', { 
+    userId: userId.toString(), 
+    status: 200,
+    activityCount: activity.length 
+  })
   res.json({
     success: true,
     message: 'Activity feed retrieved',
@@ -262,6 +277,8 @@ export const getDashboardActivity = safeDashboardHandler(async (req, res) => {
 // GET /dashboard/readiness - Detailed readiness breakdown
 export const getDashboardReadiness = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
+  
+  logger.info('[Dashboard] readiness request', { userId: userId.toString() })
 
   const widgets = await resolveWidgets(
     [
@@ -272,6 +289,12 @@ export const getDashboardReadiness = safeDashboardHandler(async (req, res) => {
     'dashboard:readiness',
   )
 
+  logger.info('[Dashboard] readiness response', { 
+    userId: userId.toString(), 
+    status: 200,
+    hasReadiness: !!widgets.readiness,
+    hasBreakdown: !!widgets.breakdown
+  })
   res.json({
     success: true,
     message: 'Readiness data retrieved',
@@ -282,6 +305,8 @@ export const getDashboardReadiness = safeDashboardHandler(async (req, res) => {
 // GET /dashboard/focus - Today's focus recommendations
 export const getDashboardFocus = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
+  
+  logger.info('[Dashboard] focus request', { userId: userId.toString() })
 
   const widgets = await resolveWidgets(
     [
@@ -311,6 +336,11 @@ export const getDashboardFocus = safeDashboardHandler(async (req, res) => {
     weakTopics: safeArray(widgets.weakTopics),
   })
 
+  logger.info('[Dashboard] focus response', { 
+    userId: userId.toString(), 
+    status: 200,
+    focusCount: todayFocus.length 
+  })
   res.json({
     success: true,
     message: 'Today\'s focus retrieved',
@@ -321,6 +351,8 @@ export const getDashboardFocus = safeDashboardHandler(async (req, res) => {
 // GET /dashboard/quick-actions - Available quick actions based on user state
 export const getDashboardQuickActions = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
+  
+  logger.info('[Dashboard] quick-actions request', { userId: userId.toString() })
 
   const widgets = await resolveWidgets(
     [
@@ -343,6 +375,11 @@ export const getDashboardQuickActions = safeDashboardHandler(async (req, res) =>
     { id: 'update-profile', label: 'Update Profile', icon: '👤', available: !hasProfile, route: '/app/profile' },
   ].filter((a) => a.available)
 
+  logger.info('[Dashboard] quick-actions response', { 
+    userId: userId.toString(), 
+    status: 200,
+    actionCount: actions.length 
+  })
   res.json({
     success: true,
     message: 'Quick actions retrieved',
