@@ -1337,23 +1337,35 @@ export class AnalyticsService {
   }
 
   async getHeatmapData(userId, days = 84) {
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
+    startDate.setHours(0, 0, 0, 0)
+
+    const results = await DSAProblem.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+          solvedAt: { $gte: startDate },
+          deletedAt: null,
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$solvedAt' } },
+          count: { $sum: 1 },
+        }
+      },
+    ])
+
+    const dataMap = new Map(results.map(r => [r._id, r.count]))
     const data = []
     const now = new Date()
 
     for (let i = days; i >= 0; i--) {
       const date = new Date(now)
       date.setDate(now.getDate() - i)
-      date.setHours(0, 0, 0, 0)
-
-      const nextDate = new Date(date)
-      nextDate.setDate(date.getDate() + 1)
-
-      const problems = await DSAProblem.countDocuments({
-        userId,
-        solvedAt: { $gte: date, $lt: nextDate },
-        deletedAt: null,
-      })
-
+      const dateStr = date.toISOString().split('T')[0]
+      const problems = dataMap.get(dateStr) || 0
       const intensity = problems === 0 ? 0 : Math.min(Math.ceil(problems / 2), 4)
       data.push(intensity)
     }
@@ -1362,17 +1374,21 @@ export class AnalyticsService {
   }
 
   async getStreak(userId) {
-    const problems = await DSAProblem.find({ userId, deletedAt: null })
-      .sort({ solvedAt: -1 })
-      .select('solvedAt')
+    const problems = await DSAProblem.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId), deletedAt: null } },
+      { $sort: { solvedAt: -1 } },
+      { $project: { date: { $dateToString: { format: '%Y-%m-%d', date: '$solvedAt' } } } },
+      { $group: { _id: '$date' } },
+      { $sort: { _id: -1 } },
+    ])
 
     if (!problems.length) return 0
 
-    const dates = new Set(problems.map((p) => new Date(p.solvedAt).toDateString()))
+    const dates = new Set(problems.map((p) => p._id))
     const checkDate = new Date()
     let streak = 0
 
-    while (dates.has(checkDate.toDateString())) {
+    while (dates.has(checkDate.toISOString().split('T')[0])) {
       streak++
       checkDate.setDate(checkDate.getDate() - 1)
     }
@@ -1381,13 +1397,17 @@ export class AnalyticsService {
   }
 
   async getLongestStreak(userId) {
-    const problems = await DSAProblem.find({ userId, deletedAt: null })
-      .sort({ solvedAt: -1 })
-      .select('solvedAt')
+    const problems = await DSAProblem.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId), deletedAt: null } },
+      { $sort: { solvedAt: -1 } },
+      { $project: { date: { $dateToString: { format: '%Y-%m-%d', date: '$solvedAt' } } } },
+      { $group: { _id: '$date' } },
+      { $sort: { _id: -1 } },
+    ])
 
     if (!problems.length) return 0
 
-    const dates = [...new Set(problems.map((p) => new Date(p.solvedAt).toDateString()))].sort((a, b) => new Date(b) - new Date(a))
+    const dates = problems.map((p) => p._id)
 
     let longestStreak = 0
     let currentStreak = 1

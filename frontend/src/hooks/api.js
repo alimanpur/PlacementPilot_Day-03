@@ -2167,7 +2167,7 @@ export const useSmartTasks = () => {
     queryKey: ['planner', 'smart-tasks'],
     queryFn: async () => {
       const response = await api.getSmartTasks()
-      return response.data.data
+      return response.data.data?.tasks || []
     },
     staleTime: 1000 * 60 * 2,
   })
@@ -2192,7 +2192,7 @@ export const usePlannerHabits = () => {
     queryKey: ['planner', 'habits'],
     queryFn: async () => {
       const response = await api.getPlannerHabits()
-      return response.data.data
+      return response.data.data?.habits || []
     },
     staleTime: 1000 * 60 * 2,
   })
@@ -2271,7 +2271,7 @@ export const usePlannerGoals = () => {
     queryKey: ['planner', 'goals'],
     queryFn: async () => {
       const response = await api.getPlannerGoals()
-      return response.data.data
+      return response.data.data?.goals || []
     },
     staleTime: 1000 * 60 * 2,
   })
