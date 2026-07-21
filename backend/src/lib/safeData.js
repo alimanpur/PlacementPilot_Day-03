@@ -55,12 +55,18 @@ export async function safePromise(promise, fallback, context = 'safePromise') {
 export async function resolveWidgets(tasks, defaults = {}, context = 'resolveWidgets') {
   const entries = await Promise.allSettled(
     tasks.map(async ([key, promise]) => {
+      const widgetStart = Date.now()
       try {
         const value = await promise
+        const duration = Date.now() - widgetStart
+        if (typeof console !== 'undefined' && console.error) {
+          console.error(`[${context}] widget "${key}" completed in ${duration}ms`)
+        }
         return [key, value === undefined || value === null ? defaults[key] : value]
       } catch (error) {
+        const duration = Date.now() - widgetStart
         if (typeof console !== 'undefined' && console.error) {
-          console.error(`[${context}] widget "${key}" failed:`, error?.stack || error?.message || error)
+          console.error(`[${context}] widget "${key}" FAILED in ${duration}ms:`, error?.stack || error?.message || error)
         }
         return [key, defaults[key]]
       }
@@ -72,8 +78,8 @@ export async function resolveWidgets(tasks, defaults = {}, context = 'resolveWid
       if (entry.status === 'fulfilled') {
         return entry.value
       }
-      // If the promise itself rejected (shouldn't happen with try-catch, but safety net)
-      const [key] = tasks[entries.indexOf(entry)] || ['unknown', Promise.resolve()]
+      const idx = entries.indexOf(entry)
+      const [key] = (idx >= 0 && idx < tasks.length) ? tasks[idx] : ['unknown', Promise.resolve()]
       if (typeof console !== 'undefined' && console.error) {
         console.error(`[${context}] widget "${key}" promise rejected:`, entry.reason)
       }

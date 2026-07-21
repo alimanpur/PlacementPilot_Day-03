@@ -105,20 +105,6 @@ export const useUpdateProfile = () => {
   })
 }
 
-export const useUpdateNotificationPreferences = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: api.updateNotificationPreferences,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user'] })
-      toast.success('Notification preferences updated')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to update notification preferences')
-    },
-  })
-}
-
 export const useProfileSummary = () => {
   return useQuery({
     queryKey: ['profile', 'summary'],
@@ -1230,90 +1216,6 @@ export const useRemoveInterviewAttachment = () => {
   })
 }
 
-export const useAddChecklistItem = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, data }) => api.addChecklistItem(id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
-      toast.success('Checklist item added')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to add checklist item')
-    },
-  })
-}
-
-export const useToggleChecklistItem = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, data }) => api.toggleChecklistItem(id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
-      toast.success('Checklist item updated')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to toggle checklist item')
-    },
-  })
-}
-
-export const useRemoveChecklistItem = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, itemId }) => api.removeChecklistItem(id, itemId),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
-      toast.success('Checklist item removed')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to remove checklist item')
-    },
-  })
-}
-
-export const useUpdateInterviewPreparation = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, data }) => api.updateInterviewPreparation(id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
-      toast.success('Preparation updated')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to update preparation')
-    },
-  })
-}
-
-export const useAddInterviewer = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, data }) => api.addInterviewer(id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
-      toast.success('Interviewer added')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to add interviewer')
-    },
-  })
-}
-
-export const useRemoveInterviewer = () => {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, interviewerId }) => api.removeInterviewer(id, interviewerId),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
-      toast.success('Interviewer removed')
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to remove interviewer')
-    },
-  })
-}
-
 export const useBulkActionInterviews = () => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -2167,7 +2069,7 @@ export const useSmartTasks = () => {
     queryKey: ['planner', 'smart-tasks'],
     queryFn: async () => {
       const response = await api.getSmartTasks()
-      return response.data.data?.tasks || []
+      return response.data.data
     },
     staleTime: 1000 * 60 * 2,
   })
@@ -2192,7 +2094,7 @@ export const usePlannerHabits = () => {
     queryKey: ['planner', 'habits'],
     queryFn: async () => {
       const response = await api.getPlannerHabits()
-      return response.data.data?.habits || []
+      return response.data.data
     },
     staleTime: 1000 * 60 * 2,
   })
@@ -2271,7 +2173,7 @@ export const usePlannerGoals = () => {
     queryKey: ['planner', 'goals'],
     queryFn: async () => {
       const response = await api.getPlannerGoals()
-      return response.data.data?.goals || []
+      return response.data.data
     },
     staleTime: 1000 * 60 * 2,
   })
@@ -2608,49 +2510,6 @@ export const useEligibilityAnalysis = () => {
   })
 }
 
-export const useInterviewStats = () => {
-  return useQuery({
-    queryKey: ['analytics', 'interviews'],
-    queryFn: async () => {
-      const response = await api.getInterviewStats()
-      return response.data.data
-    },
-    staleTime: 1000 * 60 * 5,
-  })
-}
-
-export const useInterviewTrends = (months = 6) => {
-  return useQuery({
-    queryKey: ['analytics', 'interviews', 'trends', months],
-    queryFn: async () => {
-      const response = await api.getInterviewTrends(months)
-      return response.data.data
-    },
-    staleTime: 1000 * 60 * 5,
-  })
-}
-
-export const useInterviewTypeDistribution = () => {
-  return useQuery({
-    queryKey: ['analytics', 'interviews', 'types'],
-    queryFn: async () => {
-      const response = await api.getInterviewTypeDistribution()
-      return response.data.data
-    },
-    staleTime: 1000 * 60 * 5,
-  })
-}
-
-export const useInterviewDifficultyTrends = () => {
-  return useQuery({
-    queryKey: ['analytics', 'interviews', 'difficulty'],
-    queryFn: async () => {
-      const response = await api.getInterviewDifficultyTrends()
-      return response.data.data
-    },
-    staleTime: 1000 * 60 * 5,
-  })
-}
 
 export const useInterviewAverageRating = () => {
   return useQuery({
@@ -2670,7 +2529,7 @@ export const useUpcomingSchedule = () => {
       const response = await api.getUpcomingSchedule()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
@@ -2813,7 +2672,7 @@ export const useStreak = () => {
       const response = await api.getStreak()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
@@ -2823,7 +2682,7 @@ export const useAchievements = () => {
     queryKey: ['achievements'],
     queryFn: async () => {
       const response = await api.getAchievements()
-      return response.data.data
+      return response.data.data.achievements
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2838,6 +2697,21 @@ export const useSettings = () => {
       return response.data.data
     },
     staleTime: 1000 * 60 * 5,
+  })
+}
+
+export const useUpdateNotificationPreferences = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.updateNotificationPreferences,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+      toast.success('Notification preferences updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update notification preferences')
+    },
   })
 }
 
@@ -2856,7 +2730,6 @@ export const useUpdateSettings = () => {
 }
 
 export const useChangePassword = () => {
-  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: api.changePassword,
     onSuccess: () => {
@@ -2875,7 +2748,7 @@ export const useSessions = () => {
       const response = await api.getSessions()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
@@ -2885,7 +2758,7 @@ export const useRevokeSessions = () => {
     mutationFn: api.revokeSessions,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings', 'sessions'] })
-      toast.success('All other sessions revoked')
+      toast.success('Sessions revoked')
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to revoke sessions')
@@ -2900,7 +2773,7 @@ export const useDeleteAccount = () => {
     onSuccess: () => {
       queryClient.clear()
       localStorage.removeItem('accessToken')
-      toast.success('Account deleted')
+      toast.success('Account scheduled for deletion')
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to delete account')
@@ -2931,7 +2804,7 @@ export const useUpdateNotifications = () => {
       toast.success('Notification preferences updated')
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to update notifications')
+      toast.error(error.response?.data?.message || 'Failed to update notification preferences')
     },
   })
 }
@@ -2966,23 +2839,23 @@ export const useUpdateSecurity = () => {
 
 export const useLoginHistory = () => {
   return useQuery({
-    queryKey: ['settings', 'security', 'login-history'],
+    queryKey: ['settings', 'login-history'],
     queryFn: async () => {
       const response = await api.getLoginHistory()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
 export const useSecurityLog = () => {
   return useQuery({
-    queryKey: ['settings', 'security', 'log'],
+    queryKey: ['settings', 'security-log'],
     queryFn: async () => {
       const response = await api.getSecurityLog()
       return response.data.data
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   })
 }
 
@@ -3040,11 +2913,10 @@ export const useDisconnectIntegration = () => {
 }
 
 export const useExportData = () => {
-  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: api.exportData,
     onSuccess: () => {
-      toast.success('Data export started. You will be notified when it\'s ready.')
+      toast.success('Data export initiated')
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to export data')
@@ -3085,6 +2957,7 @@ export const useDeleteArchivedData = () => {
   return useMutation({
     mutationFn: api.deleteArchivedData,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
       toast.success('Archived data deleted')
     },
     onError: (error) => {
@@ -3097,8 +2970,8 @@ export const useDeleteArchivedData = () => {
 export const useJoinWaitlist = () => {
   return useMutation({
     mutationFn: api.joinWaitlist,
-    onSuccess: (response) => {
-      toast.success(response.data.message || 'You\'ve been added to the waitlist')
+    onSuccess: () => {
+      toast.success('Joined waitlist')
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to join waitlist')

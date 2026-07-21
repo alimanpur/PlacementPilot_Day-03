@@ -52,14 +52,24 @@ const DASHBOARD_DEFAULTS = {
  */
 function safeDashboardHandler(handler, endpoint) {
   return async (req, res) => {
+    const start = Date.now()
     try {
-      return await handler(req, res)
+      const result = await handler(req, res)
+      const duration = Date.now() - start
+      logger.info(`[Dashboard] ${endpoint} completed`, { 
+        userId: req.user?._id?.toString(), 
+        durationMs: duration,
+        status: 200 
+      })
+      return result
     } catch (error) {
+      const duration = Date.now() - start
       logger.error('Dashboard endpoint failed — returning safe fallback', {
         endpoint,
         userId: req.user?._id?.toString(),
         error: error?.message,
         stack: error?.stack,
+        durationMs: duration,
         context: 'dashboard',
       })
       res.status(200).json({
@@ -104,6 +114,7 @@ export const getDashboardOverview = safeDashboardHandler(async (req, res) => {
   }
   
   logger.info('[Dashboard] overview request', { userId: userId.toString() })
+  const widgetStart = Date.now()
 
   // Each widget is resolved independently. If one widget throws (e.g. a missing
   // index, a repository returning undefined), only that widget falls back to its
@@ -129,6 +140,8 @@ export const getDashboardOverview = safeDashboardHandler(async (req, res) => {
     DASHBOARD_DEFAULTS,
     'dashboard:overview',
   )
+  const widgetDuration = Date.now() - widgetStart
+  logger.info(`[Dashboard] overview widgets resolved in ${widgetDuration}ms`, { userId: userId.toString() })
 
   const {
     user,
@@ -156,6 +169,7 @@ export const getDashboardOverview = safeDashboardHandler(async (req, res) => {
   const userName = user?.name || req.user?.name || 'there'
   const userEmail = user?.email || req.user?.email || ''
 
+  const payloadStart = Date.now()
   const todayFocus = generateTodayFocus({
     hasCompanies: activeCompanies.length > 0,
     hasDsa: safeNumber(dsaStats?.totalSolved) > 0,
@@ -223,6 +237,8 @@ export const getDashboardOverview = safeDashboardHandler(async (req, res) => {
       },
     },
   }
+  const payloadDuration = Date.now() - payloadStart
+  logger.info(`[Dashboard] overview payload built in ${payloadDuration}ms`, { userId: userId.toString() })
 
   overviewCache.set(cacheKey, { ts: Date.now(), payload })
   logger.info('[Dashboard] overview response', { 
@@ -237,6 +253,7 @@ export const getDashboardOverview = safeDashboardHandler(async (req, res) => {
 export const getDashboardActivity = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
   const limit = parseInt(req.query.limit) || 20
+  const start = Date.now()
   
   logger.info('[Dashboard] activity request', { userId: userId.toString(), limit })
 
@@ -262,10 +279,12 @@ export const getDashboardActivity = safeDashboardHandler(async (req, res) => {
     limit
   )
 
+  const duration = Date.now() - start
   logger.info('[Dashboard] activity response', { 
     userId: userId.toString(), 
     status: 200,
-    activityCount: activity.length 
+    activityCount: activity.length,
+    durationMs: duration
   })
   res.json({
     success: true,
@@ -277,6 +296,7 @@ export const getDashboardActivity = safeDashboardHandler(async (req, res) => {
 // GET /dashboard/readiness - Detailed readiness breakdown
 export const getDashboardReadiness = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
+  const start = Date.now()
   
   logger.info('[Dashboard] readiness request', { userId: userId.toString() })
 
@@ -289,11 +309,13 @@ export const getDashboardReadiness = safeDashboardHandler(async (req, res) => {
     'dashboard:readiness',
   )
 
+  const duration = Date.now() - start
   logger.info('[Dashboard] readiness response', { 
     userId: userId.toString(), 
     status: 200,
     hasReadiness: !!widgets.readiness,
-    hasBreakdown: !!widgets.breakdown
+    hasBreakdown: !!widgets.breakdown,
+    durationMs: duration
   })
   res.json({
     success: true,
@@ -305,6 +327,7 @@ export const getDashboardReadiness = safeDashboardHandler(async (req, res) => {
 // GET /dashboard/focus - Today's focus recommendations
 export const getDashboardFocus = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
+  const start = Date.now()
   
   logger.info('[Dashboard] focus request', { userId: userId.toString() })
 
@@ -336,10 +359,12 @@ export const getDashboardFocus = safeDashboardHandler(async (req, res) => {
     weakTopics: safeArray(widgets.weakTopics),
   })
 
+  const duration = Date.now() - start
   logger.info('[Dashboard] focus response', { 
     userId: userId.toString(), 
     status: 200,
-    focusCount: todayFocus.length 
+    focusCount: todayFocus.length,
+    durationMs: duration
   })
   res.json({
     success: true,
@@ -351,6 +376,7 @@ export const getDashboardFocus = safeDashboardHandler(async (req, res) => {
 // GET /dashboard/quick-actions - Available quick actions based on user state
 export const getDashboardQuickActions = safeDashboardHandler(async (req, res) => {
   const userId = req.user._id
+  const start = Date.now()
   
   logger.info('[Dashboard] quick-actions request', { userId: userId.toString() })
 
@@ -375,10 +401,12 @@ export const getDashboardQuickActions = safeDashboardHandler(async (req, res) =>
     { id: 'update-profile', label: 'Update Profile', icon: '👤', available: !hasProfile, route: '/app/profile' },
   ].filter((a) => a.available)
 
+  const duration = Date.now() - start
   logger.info('[Dashboard] quick-actions response', { 
     userId: userId.toString(), 
     status: 200,
-    actionCount: actions.length 
+    actionCount: actions.length,
+    durationMs: duration
   })
   res.json({
     success: true,
