@@ -1216,6 +1216,48 @@ export const useRemoveInterviewAttachment = () => {
   })
 }
 
+export const useUpdateInterviewPreparation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.updateInterviewPreparation(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
+      toast.success('Preparation updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update preparation')
+    },
+  })
+}
+
+export const useAddInterviewer = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.addInterviewer(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
+      toast.success('Interviewer added')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to add interviewer')
+    },
+  })
+}
+
+export const useRemoveInterviewer = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, interviewerId }) => api.removeInterviewer(id, interviewerId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
+      toast.success('Interviewer removed')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to remove interviewer')
+    },
+  })
+}
+
 export const useBulkActionInterviews = () => {
   const queryClient = useQueryClient()
   return useMutation({
