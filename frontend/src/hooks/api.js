@@ -1021,6 +1021,39 @@ export const useInterviewDashboardStats = () => {
   })
 }
 
+export const useInterviewStats = () => {
+  return useQuery({
+    queryKey: ['interviews', 'stats'],
+    queryFn: async () => {
+      const response = await api.getInterviewStats()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const useInterviewTrends = (months = 6) => {
+  return useQuery({
+    queryKey: ['interviews', 'trends', months],
+    queryFn: async () => {
+      const response = await api.getInterviewTrends(months)
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
+export const useInterviewTypeDistribution = () => {
+  return useQuery({
+    queryKey: ['interviews', 'types'],
+    queryFn: async () => {
+      const response = await api.getInterviewTypeDistribution()
+      return response.data.data
+    },
+    staleTime: 1000 * 60 * 2,
+  })
+}
+
 export const useCreateInterview = () => {
   const queryClient = useQueryClient()
   return useMutation({
