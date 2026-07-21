@@ -15,7 +15,7 @@ import {
   useToggleDsaStar,
   useDsaDashboardStats,
   useDsaInsights,
-  useDsaDailyRevisions,
+  useDsaDailyRevisionQueue,
   useDsaMissedRevisions,
   useCompleteDsaRevision,
   useSkipDsaRevision,
@@ -526,7 +526,7 @@ function RoadmapsTab() {
 }
 
 function RevisionsTab() {
-  const { data: dailyRevisions } = useDsaDailyRevisions()
+  const { data: dailyRevisions } = useDsaDailyRevisionQueue()
   const { data: missedRevisions } = useDsaMissedRevisions()
   const completeMutation = useCompleteDsaRevision()
   const skipMutation = useSkipDsaRevision()

@@ -105,6 +105,20 @@ export const useUpdateProfile = () => {
   })
 }
 
+export const useUpdateNotificationPreferences = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.updateNotificationPreferences,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+      toast.success('Notification preferences updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update notification preferences')
+    },
+  })
+}
+
 export const useProfileSummary = () => {
   return useQuery({
     queryKey: ['profile', 'summary'],
@@ -1212,6 +1226,90 @@ export const useRemoveInterviewAttachment = () => {
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to remove attachment')
+    },
+  })
+}
+
+export const useAddChecklistItem = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.addChecklistItem(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
+      toast.success('Checklist item added')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to add checklist item')
+    },
+  })
+}
+
+export const useToggleChecklistItem = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.toggleChecklistItem(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
+      toast.success('Checklist item updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to toggle checklist item')
+    },
+  })
+}
+
+export const useRemoveChecklistItem = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, itemId }) => api.removeChecklistItem(id, itemId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
+      toast.success('Checklist item removed')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to remove checklist item')
+    },
+  })
+}
+
+export const useUpdateInterviewPreparation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.updateInterviewPreparation(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
+      toast.success('Preparation updated')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to update preparation')
+    },
+  })
+}
+
+export const useAddInterviewer = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.addInterviewer(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
+      toast.success('Interviewer added')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to add interviewer')
+    },
+  })
+}
+
+export const useRemoveInterviewer = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, interviewerId }) => api.removeInterviewer(id, interviewerId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interviews', variables.id] })
+      toast.success('Interviewer removed')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to remove interviewer')
     },
   })
 }
