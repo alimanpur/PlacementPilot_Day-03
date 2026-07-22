@@ -8,7 +8,7 @@ export const getAllNotifications = asyncWrapper(async (req, res) => {
   res.json({
     success: true,
     message: 'Notifications retrieved',
-    data: { notifications },
+    data: notifications,
   })
 })
 

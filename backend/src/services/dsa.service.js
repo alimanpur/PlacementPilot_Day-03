@@ -464,6 +464,10 @@ export class DSAService {
     return this.repository.getRecommendedProblems(userId, weakTopicIds, limit)
   }
 
+  async getMonthlyTrends(userId, months = 6) {
+    return this.repository.getMonthlyTrends(userId, months)
+  }
+
   async getInterviewReadiness(userId) {
     const insights = await this.repository.getInsights(userId)
     const totalSolved = insights.totalSolved

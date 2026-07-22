@@ -53,11 +53,21 @@ export async function safePromise(promise, fallback, context = 'safePromise') {
  * falls back to `defaults[key]` so the response shape stays identical.
  */
 export async function resolveWidgets(tasks, defaults = {}, context = 'resolveWidgets') {
+  const WIDGET_TIMEOUT_MS = 4000
+
+  const raceWithTimeout = (promise, timeoutMs) =>
+    Promise.race([
+      promise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Widget timed out after ${timeoutMs}ms`)), timeoutMs),
+      ),
+    ])
+
   const entries = await Promise.allSettled(
     tasks.map(async ([key, promise]) => {
       const widgetStart = Date.now()
       try {
-        const value = await promise
+        const value = await raceWithTimeout(promise, WIDGET_TIMEOUT_MS)
         const duration = Date.now() - widgetStart
         if (typeof console !== 'undefined' && console.error) {
           console.error(`[${context}] widget "${key}" completed in ${duration}ms`)
@@ -72,7 +82,7 @@ export async function resolveWidgets(tasks, defaults = {}, context = 'resolveWid
       }
     }),
   )
-  
+
   return Object.fromEntries(
     entries.map((entry) => {
       if (entry.status === 'fulfilled') {

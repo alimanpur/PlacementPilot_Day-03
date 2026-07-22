@@ -315,6 +315,17 @@ export class DSARepository {
   }
 
   async findHeatmap(userId, days = 84) {
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
+    startDate.setHours(0, 0, 0, 0)
+    const startDateStr = startDate.toISOString().split('T')[0]
+
+    const entries = await DSAHeatmap.find({
+      userId,
+      date: { $gte: startDateStr },
+    }).lean()
+
+    const entryMap = new Map(entries.map((e) => [e.date, e.count || 0]))
     const data = []
     const now = new Date()
 
@@ -322,12 +333,11 @@ export class DSARepository {
       const date = new Date(now)
       date.setDate(now.getDate() - i)
       const dateStr = date.toISOString().split('T')[0]
-
-      const entry = await DSAHeatmap.findOne({ userId, date: dateStr }).lean()
+      const count = entryMap.get(dateStr) || 0
       data.push({
         date: dateStr,
-        count: entry?.count || 0,
-        intensity: (entry?.count || 0) === 0 ? 0 : Math.min(Math.ceil((entry?.count || 0) / 2), 4),
+        count,
+        intensity: count === 0 ? 0 : Math.min(Math.ceil(count / 2), 4),
       })
     }
 
