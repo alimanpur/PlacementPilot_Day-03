@@ -1048,7 +1048,7 @@ export const useInterviewTrends = (months = 6) => {
     queryKey: ['interviews', 'trends', months],
     queryFn: async () => {
       const response = await api.getInterviewTrends(months)
-      return response.data.data
+      return response.data.data.trends
     },
     staleTime: 1000 * 60 * 2,
   })
@@ -1059,7 +1059,7 @@ export const useInterviewTypeDistribution = () => {
     queryKey: ['interviews', 'types'],
     queryFn: async () => {
       const response = await api.getInterviewTypeDistribution()
-      return response.data.data
+      return response.data.data.distribution
     },
     staleTime: 1000 * 60 * 2,
   })
@@ -2456,7 +2456,7 @@ export const useReadiness = () => {
     queryKey: ['analytics', 'readiness'],
     queryFn: async () => {
       const response = await api.getReadiness()
-      return response.data.data
+      return response.data.data.readiness
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2500,7 +2500,7 @@ export const useApplicationTrends = (months = 6) => {
     queryKey: ['analytics', 'applications', 'trends', months],
     queryFn: async () => {
       const response = await api.getApplicationTrends(months)
-      return response.data.data
+      return response.data.data.trends
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2511,7 +2511,7 @@ export const useApplicationFunnel = () => {
     queryKey: ['analytics', 'applications', 'funnel'],
     queryFn: async () => {
       const response = await api.getApplicationFunnel()
-      return response.data.data
+      return response.data.data.funnel
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2522,7 +2522,7 @@ export const useApplicationSources = () => {
     queryKey: ['analytics', 'applications', 'sources'],
     queryFn: async () => {
       const response = await api.getApplicationSources()
-      return response.data.data
+      return response.data.data.sources
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2544,7 +2544,7 @@ export const useStageDistribution = () => {
     queryKey: ['analytics', 'applications', 'stages'],
     queryFn: async () => {
       const response = await api.getStageDistribution()
-      return response.data.data
+      return response.data.data.distribution
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2577,7 +2577,7 @@ export const useCompanyAnalytics = () => {
     queryKey: ['analytics', 'companies'],
     queryFn: async () => {
       const response = await api.getCompanyAnalytics()
-      return response.data.data
+      return response.data.data.analytics
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2588,7 +2588,7 @@ export const useIndustryDistribution = () => {
     queryKey: ['analytics', 'companies', 'industry'],
     queryFn: async () => {
       const response = await api.getIndustryDistribution()
-      return response.data.data
+      return response.data.data.distribution
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2599,7 +2599,7 @@ export const useLocationDistribution = () => {
     queryKey: ['analytics', 'companies', 'location'],
     queryFn: async () => {
       const response = await api.getLocationDistribution()
-      return response.data.data
+      return response.data.data.distribution
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2610,7 +2610,7 @@ export const useHiringTrends = (months = 6) => {
     queryKey: ['analytics', 'companies', 'hiring-trends', months],
     queryFn: async () => {
       const response = await api.getHiringTrends(months)
-      return response.data.data
+      return response.data.data.trends
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2621,7 +2621,7 @@ export const useTopCompanies = (limit = 10) => {
     queryKey: ['analytics', 'companies', 'top', limit],
     queryFn: async () => {
       const response = await api.getTopCompanies(limit)
-      return response.data.data
+      return response.data.data.companies
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2632,7 +2632,7 @@ export const useEligibilityAnalysis = () => {
     queryKey: ['analytics', 'companies', 'eligibility'],
     queryFn: async () => {
       const response = await api.getEligibilityAnalysis()
-      return response.data.data
+      return response.data.data.analysis
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2655,7 +2655,7 @@ export const useUpcomingSchedule = () => {
     queryKey: ['analytics', 'interviews', 'schedule'],
     queryFn: async () => {
       const response = await api.getUpcomingSchedule()
-      return response.data.data
+      return response.data.data.schedule
     },
     staleTime: 1000 * 60 * 2,
   })
@@ -2688,7 +2688,7 @@ export const useDsaDifficultyBreakdown = () => {
     queryKey: ['analytics', 'dsa', 'difficulty'],
     queryFn: async () => {
       const response = await api.getDsaDifficultyBreakdown()
-      return response.data.data
+      return response.data.data.breakdown
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2699,7 +2699,7 @@ export const useDsaTopicMastery = () => {
     queryKey: ['analytics', 'dsa', 'mastery'],
     queryFn: async () => {
       const response = await api.getDsaTopicMastery()
-      return response.data.data
+      return response.data.data.mastery
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2721,7 +2721,7 @@ export const useInsights = () => {
     queryKey: ['analytics', 'insights'],
     queryFn: async () => {
       const response = await api.getInsights()
-      return response.data.data
+      return response.data.data.insights
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2732,7 +2732,7 @@ export const useRecommendations = () => {
     queryKey: ['analytics', 'recommendations'],
     queryFn: async () => {
       const response = await api.getRecommendations()
-      return response.data.data
+      return response.data.data.recommendations
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2776,7 +2776,7 @@ export const useWeeklyTrend = (weeks = 12) => {
     queryKey: ['analytics', 'trend', weeks],
     queryFn: async () => {
       const response = await api.getWeeklyTrend(weeks)
-      return response.data.data
+      return response.data.data.trend
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2787,7 +2787,7 @@ export const useHeatmap = (days = 84) => {
     queryKey: ['analytics', 'heatmap', days],
     queryFn: async () => {
       const response = await api.getHeatmap(days)
-      return response.data.data
+      return response.data.data.heatmap
     },
     staleTime: 1000 * 60 * 5,
   })
@@ -2798,7 +2798,7 @@ export const useStreak = () => {
     queryKey: ['analytics', 'streak'],
     queryFn: async () => {
       const response = await api.getStreak()
-      return response.data.data
+      return response.data.data.streak
     },
     staleTime: 1000 * 60 * 2,
   })
