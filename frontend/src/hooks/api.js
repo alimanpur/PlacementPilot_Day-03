@@ -90,6 +90,17 @@ export const useProfile = () => {
   })
 }
 
+export const useUpdateOnboarding = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.updateOnboarding,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
 // Profile hooks — used by Profile page
 export const useUpdateProfile = () => {
   const queryClient = useQueryClient()

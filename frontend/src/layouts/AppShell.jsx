@@ -6,7 +6,7 @@ import { MobileSidebar } from '@/components/common/MobileSidebar'
 import { CommandPalette, useCommandPalette } from '@/components/common/CommandPalette'
 import QuickActions from '@/components/common/QuickActions'
 import { cn } from '@/lib/utils'
-import { primaryNav, secondaryNav, utilityNav } from '@/constants/navigation'
+import { primaryNav, secondaryNav, utilityNav, NAV_SECTIONS } from '@/constants/navigation'
 import { useProfile } from '@/hooks/api'
 
 export function AppShell({ children }) {
@@ -44,6 +44,13 @@ function DesktopSidebar() {
     .toUpperCase()
     .slice(0, 2)
 
+  const allNavItems = [...primaryNav, ...secondaryNav, ...utilityNav]
+  const mainItems = allNavItems.filter((item) => !item.section)
+  const sectionedNav = NAV_SECTIONS.map((section) => ({
+    section,
+    items: allNavItems.filter((item) => item.section === section),
+  })).filter((group) => group.items.length > 0)
+
   return (
     <aside
       className="w-64 shrink-0 border-r border-hairline bg-surface hidden lg:flex flex-col sticky top-0 h-dvh"
@@ -53,9 +60,12 @@ function DesktopSidebar() {
         <Logo />
       </div>
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
-        <NavGroup label="Deck" items={primaryNav} pathname={pathname} />
-        <NavGroup label="Progress" items={secondaryNav} pathname={pathname} />
-        <NavGroup label="Utility" items={utilityNav} pathname={pathname} />
+        {mainItems.length > 0 && (
+          <NavGroup label="Main" items={mainItems} pathname={pathname} />
+        )}
+        {sectionedNav.map((group) => (
+          <NavGroup key={group.section} label={group.section} items={group.items} pathname={pathname} />
+        ))}
       </nav>
       <div className="p-4 border-t border-hairline">
         <div className="flex items-center gap-3">

@@ -20,6 +20,7 @@ import {
   useGoals,
   useTodayFocus,
   useProfile,
+  useUpdateOnboarding,
 } from '@/hooks/api'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -49,6 +50,7 @@ export default function Dashboard() {
   const { data: goals } = useGoals()
   const { data: todayFocusData } = useTodayFocus()
   const { data: profile } = useProfile()
+  const updateOnboarding = useUpdateOnboarding()
 
   const {
     readiness,
@@ -112,11 +114,11 @@ export default function Dashboard() {
 
   const getOnboardingRoute = (stepKey) => {
     const routes = {
-      profileComplete: '/app/profile',
-      firstCompany: '/app/applications',
-      firstGoal: '/app/goals',
-      firstDsaLog: '/app/dsa',
-      firstPlannerTask: '/app/planner',
+      profileComplete: '/app/profile?tab=edit',
+      firstCompany: '/app/companies?create=true',
+      firstGoal: '/app/goals?create=true',
+      firstDsaLog: '/app/dsa?create=true',
+      firstPlannerTask: '/app/planner?create=true',
     }
     return routes[stepKey] || '/app/profile'
   }
@@ -157,6 +159,34 @@ export default function Dashboard() {
   }
   if (quickActionsError) {
     console.error('[Dashboard] QuickActions widget failed:', quickActionsError)
+  }
+
+  if (user?.onboarding?.completed) {
+    return (
+      <PageTransition>
+        <AppShell>
+          <PageHeader eyebrow="Command deck" title="You're all set." meta="Your placement workspace is ready." />
+          <PageBody>
+            <div className="max-w-2xl mx-auto">
+              <Card>
+                <Eyebrow className="mb-4">Onboarding complete</Eyebrow>
+                <p className="text-sm text-ink-3 mb-6">
+                  You've completed all the initial setup. Keep building your profile, logging problems, and tracking applications to maximize your placement readiness.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {['Profile', 'Company', 'Goal', 'DSA', 'Planner'].map((label) => (
+                    <div key={label} className="flex items-center gap-2 rounded-md bg-brand/5 px-3 py-2">
+                      <span className="text-brand text-xs">✓</span>
+                      <span className="text-sm text-ink">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          </PageBody>
+        </AppShell>
+      </PageTransition>
+    )
   }
 
   if (isNewUser && onboardingProgress.completed < onboardingProgress.total) {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { AppShell, PageHeader, PageBody } from '@/layouts/AppShell'
 import { Card, Eyebrow, StatusPill, EmptyState } from '@/components/common/atoms'
@@ -21,12 +21,14 @@ import {
   useCreateSkill,
   useUpdateSkill,
   useDeleteSkill,
+  useUpdateOnboarding,
 } from '@/hooks/api'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
+import { useSearchParams } from 'react-router-dom'
 import {
   User,
   Award,
@@ -199,6 +201,7 @@ function OverviewTab() {
 function EditProfileTab() {
   const { data: user, isLoading, refetch } = useProfile()
   const updateMutation = useUpdateProfile()
+  const updateOnboarding = useUpdateOnboarding()
   const [editing, setEditing] = useState(false)
 
   const {
@@ -274,6 +277,9 @@ function EditProfileTab() {
       onSuccess: () => {
         setEditing(false)
         refetch()
+        if (user?.onboarding && !user.onboarding.completed) {
+          updateOnboarding.mutate({ profileComplete: true })
+        }
       },
     })
   }
@@ -821,7 +827,15 @@ function ActivityTab() {
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState('overview')
+  const [searchParams] = useSearchParams()
   const { data: user, isLoading } = useProfile()
+
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'edit') {
+      setActiveTab('edit')
+    }
+  }, [searchParams])
 
   if (isLoading) {
     return (

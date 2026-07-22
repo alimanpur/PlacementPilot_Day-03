@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { Logo } from './atoms'
 import { cn } from '@/lib/utils'
-import { primaryNav, secondaryNav, utilityNav } from '@/constants/navigation'
+import { primaryNav, secondaryNav, utilityNav, NAV_SECTIONS } from '@/constants/navigation'
 import { useProfile } from '@/hooks/api'
 
 function NavGroup({ label, items, pathname, onClose }) {
@@ -64,6 +64,13 @@ export function MobileSidebar({ open, onClose }) {
     .toUpperCase()
     .slice(0, 2)
 
+  const allNavItems = [...primaryNav, ...secondaryNav, ...utilityNav]
+  const mainItems = allNavItems.filter((item) => !item.section)
+  const sectionedNav = NAV_SECTIONS.map((section) => ({
+    section,
+    items: allNavItems.filter((item) => item.section === section),
+  })).filter((group) => group.items.length > 0)
+
   return (
     <AnimatePresence>
       {open && (
@@ -96,24 +103,12 @@ export function MobileSidebar({ open, onClose }) {
               </button>
             </div>
             <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
-              <NavGroup
-                label="Deck"
-                items={primaryNav}
-                pathname={location.pathname}
-                onClose={onClose}
-              />
-              <NavGroup
-                label="Progress"
-                items={secondaryNav}
-                pathname={location.pathname}
-                onClose={onClose}
-              />
-              <NavGroup
-                label="Utility"
-                items={utilityNav}
-                pathname={location.pathname}
-                onClose={onClose}
-              />
+              {mainItems.length > 0 && (
+                <NavGroup label="Main" items={mainItems} pathname={location.pathname} onClose={onClose} />
+              )}
+              {sectionedNav.map((group) => (
+                <NavGroup key={group.section} label={group.section} items={group.items} pathname={location.pathname} onClose={onClose} />
+              ))}
             </nav>
             <div className="p-4 border-t border-hairline">
               <div className="flex items-center gap-3">

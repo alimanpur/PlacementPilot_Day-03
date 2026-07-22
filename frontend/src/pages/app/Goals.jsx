@@ -1,15 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { AppShell, PageHeader, PageBody } from '@/layouts/AppShell'
 import { Card, Eyebrow, StatusPill, EmptyState } from '@/components/common/atoms'
 import { Button } from '@/components/common/Button'
 import { PageTransition, staggerContainer, staggerItem } from '@/components/common/PageTransition'
-import { useGoals, useCreateGoal } from '@/hooks/api'
+import { useGoals, useCreateGoal, useUpdateOnboarding, useProfile } from '@/hooks/api'
+import { useSearchParams } from 'react-router-dom'
 
 export default function Goals() {
   const { data: goals, isLoading, error, refetch } = useGoals()
+  const { data: profile } = useProfile()
   const createGoalMutation = useCreateGoal()
+  const updateOnboarding = useUpdateOnboarding()
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
@@ -18,6 +21,13 @@ export default function Goals() {
     cadence: 'Weekly',
     tone: 'brand',
   })
+  const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setShowForm(true)
+    }
+  }, [searchParams])
 
   if (isLoading) {
     return (
@@ -59,6 +69,9 @@ export default function Goals() {
       onSuccess: () => {
         setFormData({ title: '', progress: 0, deadline: '', cadence: 'Weekly', tone: 'brand' })
         setShowForm(false)
+        if (profile?.onboarding && !profile.onboarding.completed) {
+          updateOnboarding.mutate({ firstGoal: true })
+        }
       },
     })
   }

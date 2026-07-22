@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { AppShell, PageHeader, PageBody } from '@/layouts/AppShell'
@@ -27,8 +27,11 @@ import {
   useDsaStreak,
   useDsaWeakTopics,
   useDsaStrongTopics,
+  useUpdateOnboarding,
+  useProfile,
 } from '@/hooks/api'
 import { cn } from '@/lib/utils'
+import { useSearchParams } from 'react-router-dom'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -183,6 +186,15 @@ function ProblemsTab() {
     platform: 'other',
     status: 'not_started',
   })
+  const [searchParams] = useSearchParams()
+  const { data: profile } = useProfile()
+  const updateOnboarding = useUpdateOnboarding()
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setShowForm(true)
+    }
+  }, [searchParams])
 
   const { data: problemsData } = useDsaProblems(filters)
   const logMutation = useLogDsaProblem()
@@ -195,6 +207,9 @@ function ProblemsTab() {
       onSuccess: () => {
         setForm({ title: '', topic: '', difficulty: 'medium', platform: 'other', status: 'not_started' })
         setShowForm(false)
+        if (profile?.onboarding && !profile.onboarding.completed) {
+          updateOnboarding.mutate({ firstDsaLog: true })
+        }
       },
     })
   }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { AppShell, PageHeader, PageBody } from '@/layouts/AppShell'
@@ -21,8 +21,11 @@ import {
   usePlannerStats,
   useGenerateSmartTasks,
   useSmartTasks,
+  useUpdateOnboarding,
+  useProfile,
 } from '@/hooks/api'
 import { cn } from '@/lib/utils'
+import { useSearchParams } from 'react-router-dom'
 import { format, subWeeks, addWeeks, startOfMonth, endOfMonth, eachDayOfInterval, isToday } from 'date-fns'
 
 const TABS = [
@@ -192,6 +195,15 @@ function TasksTab() {
     dueDate: new Date(),
     startDate: new Date(),
   })
+  const [searchParams] = useSearchParams()
+  const { data: profile } = useProfile()
+  const updateOnboarding = useUpdateOnboarding()
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setShowForm(true)
+    }
+  }, [searchParams])
 
   const { data: tasksData } = usePlannerTasks(filters)
   const createMutation = useCreatePlannerTask()
@@ -205,6 +217,9 @@ function TasksTab() {
       onSuccess: () => {
         setForm({ title: '', description: '', priority: 'medium', category: 'custom', estimatedTime: 60, dueDate: new Date(), startDate: new Date() })
         setShowForm(false)
+        if (profile?.onboarding && !profile.onboarding.completed) {
+          updateOnboarding.mutate({ firstPlannerTask: true })
+        }
       },
     })
   }

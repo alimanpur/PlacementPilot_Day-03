@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AppShell, PageHeader, PageBody } from '@/layouts/AppShell'
@@ -14,6 +14,7 @@ import {
   useToggleFavorite,
   useCompanyStats,
   useFavoriteCompanies,
+  useUpdateOnboarding,
 } from '@/hooks/api'
 
 export default function Companies() {
@@ -27,6 +28,17 @@ export default function Companies() {
     priority: '',
     archived: false,
   })
+  const [searchParams] = useSearchParams()
+  const { data: profile } = useProfile()
+  const updateOnboarding = useUpdateOnboarding()
+
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setShowForm(true)
+    }
+  }, [searchParams])
+
+  const createMutation = useCreateCompany()
 
   const { data: companiesData, isLoading, error, refetch } = useCompanies({
     search,
@@ -38,7 +50,6 @@ export default function Companies() {
   const { data: stats } = useCompanyStats()
   const { data: favorites } = useFavoriteCompanies()
 
-  const createMutation = useCreateCompany()
   const deleteMutation = useDeleteCompany()
   const archiveMutation = useArchiveCompany()
   const favoriteMutation = useToggleFavorite()
@@ -89,6 +100,9 @@ export default function Companies() {
           notes: '',
         })
         setShowForm(false)
+        if (profile?.onboarding && !profile.onboarding.completed) {
+          updateOnboarding.mutate({ firstCompany: true })
+        }
       },
     })
   }
