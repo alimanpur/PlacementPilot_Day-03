@@ -15,6 +15,7 @@ import {
   useCompanyStats,
   useFavoriteCompanies,
   useUpdateOnboarding,
+  useProfile,
 } from '@/hooks/api'
 
 export default function Companies() {
