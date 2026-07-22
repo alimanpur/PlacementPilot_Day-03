@@ -27,6 +27,7 @@ const envSchema = z.object({
   EMAIL_USER: z.string().optional(),
   EMAIL_PASS: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
+  CONTACT_EMAIL: z.string().optional(),
 })
 
 const parsed = envSchema.safeParse(process.env)

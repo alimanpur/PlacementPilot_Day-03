@@ -27,7 +27,6 @@ const waitlistSchema = new mongoose.Schema({
   timestamps: true,
 })
 
-waitlistSchema.index({ email: 1 })
 waitlistSchema.index({ createdAt: -1 })
 
 export const Waitlist = mongoose.model('Waitlist', waitlistSchema)

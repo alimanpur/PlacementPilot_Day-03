@@ -3117,3 +3117,16 @@ export const useWaitlistStats = () => {
     staleTime: 1000 * 60 * 5,
   })
 }
+
+// Contact hooks
+export const useSubmitContact = () => {
+  return useMutation({
+    mutationFn: api.submitContact,
+    onSuccess: () => {
+      toast.success('Message sent successfully. We will get back to you soon.')
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to send message. Please try again.')
+    },
+  })
+}

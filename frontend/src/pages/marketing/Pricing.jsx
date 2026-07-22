@@ -4,11 +4,29 @@ import { MarketingShell } from '@/layouts/MarketingShell'
 import { PageTransition, staggerContainer, staggerItem } from '@/components/common/PageTransition'
 import { Eyebrow, Card } from '@/components/common/atoms'
 
-const comingSoonFeatures = [
-  ['Early access', 'Be the first to test new features before public release'],
-  ['Priority support', 'Direct line to our engineering team for critical issues'],
-  ['Custom integrations', 'Connect with your favorite tools and platforms'],
-  ['Advanced analytics', 'Deep insights into your placement trajectory'],
+const includedFeatures = [
+  'Unlimited applications',
+  'Unlimited interviews',
+  'Unlimited DSA problems',
+  'Unlimited planner tasks',
+  'Unlimited goals',
+  'Company tracking',
+  'DSA analytics',
+  'Placement readiness score',
+  'Weekly and monthly reports',
+  'Document management',
+  'Achievements system',
+  'Command palette',
+  'Dark mode',
+  'Data export',
+  'Mobile responsive',
+]
+
+const roadmapItems = [
+  { quarter: 'Q3 2026', title: 'Advanced Analytics', desc: 'Deeper insights, predictive readiness scoring, and custom report builder.' },
+  { quarter: 'Q4 2026', title: 'Team Workspaces', desc: 'Share preparation progress with study groups and mentors.' },
+  { quarter: 'Q1 2027', title: 'Interview Simulator', desc: 'AI-powered mock interviews with real-time feedback.' },
+  { quarter: 'Future', title: 'API Access', desc: 'Integrate PlacementPilot with your own tools and workflows.' },
 ]
 
 export default function Pricing() {
@@ -31,28 +49,53 @@ export default function Pricing() {
               transition={{ duration: 0.6, ease: [0.19, 1, 0.22, 1] }}
             >
               <div className="inline-flex">
-                <span className="inline-flex items-center rounded-full bg-brand/10 px-3 py-1 text-xs font-medium text-brand animate-pulse">
-                  Coming soon
+                <span className="inline-flex items-center rounded-full bg-brand/10 px-3 py-1 text-xs font-medium text-brand">
+                  Free during development
                 </span>
               </div>
               <h1 className="mt-6 font-display text-5xl md:text-6xl lg:text-7xl font-semibold text-ink tracking-tight max-w-[22ch] mx-auto text-center">
-                PlacementPilot Pro
+                No cost. All features.
               </h1>
               <p className="mt-6 max-w-[55ch] mx-auto text-lg text-ink-3 text-center">
-                Pricing plans are on the way. We are engineering flexible tiers for every stage of your placement journey.
+                PlacementPilot is completely free while it's in development. Use every feature, 
+                give feedback, and help shape the future of placement preparation.
               </p>
             </motion.div>
           </div>
         </section>
 
-        {/* FEATURES TEASER */}
+        {/* INCLUDED FEATURES */}
         <section className="py-24 border-b border-hairline">
           <div className="max-w-7xl mx-auto px-6">
             <div className="mb-12 max-w-2xl mx-auto text-center">
-              <Eyebrow>What to expect</Eyebrow>
+              <Eyebrow>What's included</Eyebrow>
               <h2 className="mt-3 font-display text-3xl md:text-4xl font-semibold text-ink leading-tight">
-                Premium capabilities in development
+                Everything you need, nothing you don't
               </h2>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+              {includedFeatures.map((feature) => (
+                <div key={feature} className="flex items-center gap-3 px-4 py-3 rounded-md bg-surface">
+                  <span className="text-brand text-xs">✓</span>
+                  <span className="text-sm text-ink">{feature}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ROADMAP */}
+        <section className="py-24 border-b border-hairline">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="mb-12 max-w-2xl mx-auto text-center">
+              <Eyebrow>Looking ahead</Eyebrow>
+              <h2 className="mt-3 font-display text-3xl md:text-4xl font-semibold text-ink leading-tight">
+                Possible future directions
+              </h2>
+              <p className="mt-4 text-ink-3">
+                These are ideas we are exploring. No guarantees. No paid tiers planned. 
+                We will figure out sustainability together with the community.
+              </p>
             </div>
             <motion.div
               className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
@@ -61,14 +104,12 @@ export default function Pricing() {
               whileInView="animate"
               viewport={{ once: true, margin: '-100px' }}
             >
-              {comingSoonFeatures.map(([title, desc]) => (
-                <motion.div key={title} variants={staggerItem}>
+              {roadmapItems.map((item) => (
+                <motion.div key={item.quarter} variants={staggerItem}>
                   <Card className="h-full">
-                    <div className="size-10 rounded-lg bg-brand/10 grid place-items-center mb-4">
-                      <div className="size-2 rounded-full bg-brand" />
-                    </div>
-                    <h3 className="text-ink font-medium mb-2">{title}</h3>
-                    <p className="text-sm text-ink-3">{desc}</p>
+                    <div className="eyebrow text-brand mb-3">{item.quarter}</div>
+                    <h3 className="font-display text-lg text-ink mb-2">{item.title}</h3>
+                    <p className="text-sm text-ink-3">{item.desc}</p>
                   </Card>
                 </motion.div>
               ))}
@@ -80,17 +121,18 @@ export default function Pricing() {
         <section className="py-20 border-t border-hairline">
           <div className="max-w-4xl mx-auto px-6 text-center">
             <h2 className="font-display text-3xl md:text-4xl font-semibold text-ink mb-4">
-              Ready to begin your ascent?
+              Start building your placement workspace
             </h2>
             <p className="text-ink-3 mb-8 max-w-lg mx-auto">
-              Start with the free tier today. Upgrade when Pro launches.
+              Free during development. No credit card. No paywall. 
+              Just the tools you need to prepare systematically.
             </p>
             <div className="flex justify-center gap-3 flex-wrap">
               <Link
                 to="/sign-up"
                 className="bg-brand text-[#05130d] px-6 py-3 rounded-md font-semibold hover:brightness-110 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               >
-                Start pre-flight
+                Get started
               </Link>
               <Link
                 to="/"

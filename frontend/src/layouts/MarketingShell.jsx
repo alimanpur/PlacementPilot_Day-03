@@ -139,9 +139,11 @@ export function MarketingFooter() {
         <div>
           <Logo />
           <p className="text-sm text-ink-3 mt-4 max-w-xs">
-            The operating system for placement preparation. Built for engineers, designers, and
-            thinkers on approach.
+            Open source placement preparation workspace. MIT Licensed.
           </p>
+          <div className="mt-4 text-xs text-ink-4">
+            Designed and developed by Aliasger Manpurwala
+          </div>
         </div>
         <FooterCol
           title="Product"
@@ -152,11 +154,11 @@ export function MarketingFooter() {
           ]}
         />
         <FooterCol
-          title="Company"
+          title="Resources"
           links={[
             ['About', '/about'],
             ['Contact', '/contact'],
-            ['GitHub', 'https://github.com/alimanpur/PlacementPilot_Day-03'],
+            ['FAQ', '/faq'],
           ]}
         />
         <FooterCol
@@ -164,17 +166,19 @@ export function MarketingFooter() {
           links={[
             ['Privacy', '/privacy'],
             ['Terms', '/terms'],
-            ['FAQ', '/faq'],
           ]}
         />
       </div>
       <div className="border-t border-hairline">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 flex flex-col md:flex-row justify-between items-center gap-3 text-[10px] font-mono uppercase tracking-widest text-ink-4">
           <span>
-            © 2026 PlacementPilot | Aliasger Manpur
+            © 2026 PlacementPilot
           </span>
-          <span>
-            <span className="text-brand">●</span> All systems operational 
+          <span className="flex items-center gap-4">
+            <span>React</span>
+            <span>Node.js</span>
+            <span>MongoDB</span>
+            <span className="text-brand">●</span> Open Source
           </span>
         </div>
       </div>

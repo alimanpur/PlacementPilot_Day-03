@@ -411,6 +411,9 @@ export const api = {
   // Waitlist
   joinWaitlist: (data) => apiClient.post('/waitlist', data),
   getWaitlistStats: () => apiClient.get('/waitlist/stats'),
+
+  // Contact
+  submitContact: (data) => apiClient.post('/contact', data),
 }
 
 export default apiClient

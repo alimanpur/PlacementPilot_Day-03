@@ -25,6 +25,7 @@ import { analyticsRouter } from './src/routes/analytics.routes.js'
 import { dashboardRouter } from './src/routes/dashboard.routes.js'
 import { settingsRouter } from './src/routes/settings.routes.js'
 import { waitlistRouter } from './src/routes/waitlist.routes.js'
+import { contactRouter } from './src/routes/contact.routes.js'
 
 const app = express()
 
@@ -116,6 +117,7 @@ app.use('/api/v1/analytics', analyticsRouter)
 app.use('/api/v1/dashboard', dashboardRouter)
 app.use('/api/v1/settings', settingsRouter)
 app.use('/api/v1/waitlist', waitlistRouter)
+app.use('/api/v1/contact', contactRouter)
 
 app.use(notFoundHandler)
 app.use(errorHandler)
